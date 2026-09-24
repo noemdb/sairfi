@@ -31,12 +31,9 @@ export default function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Si tiene sesión y va a login → dashboard
-  if (pathname === "/login" && hasSession) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
-  }
+  // Nota: no redirigir /login -> /dashboard aquí (optimista). Si la cookie existe pero la sesión en DB está expirada/desactivada,
+  // se producía bucle: /dashboard (proxy ve cookie -> next) -> getSessionUser null -> redirect /login -> proxy ve cookie -> redirect /dashboard -> ERR_TOO_MANY_REDIRECTS
+  // El control real de sesión válida lo hace el Server Component (getSessionUser) y limpia la cookie expirada.
 
   return NextResponse.next();
 }

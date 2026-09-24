@@ -1,7 +1,15 @@
+import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/layout/app-shell";
 import { LoginForm } from "./login-form";
+import { getSessionUser } from "@/lib/auth/session";
 
-export default function LoginPage() {
+export default async function LoginPage(props: { searchParams: Promise<{ next?: string }> }) {
+  const user = await getSessionUser();
+  if (user) {
+    const sp = await props.searchParams;
+    const next = sp?.next && sp.next.startsWith("/") && !sp.next.startsWith("//") ? sp.next : "/dashboard";
+    redirect(next);
+  }
   return (
     <div className="min-h-screen bg-[#f8fafc]">
       <AppHeader />

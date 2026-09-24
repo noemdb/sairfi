@@ -63,12 +63,32 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     include: { user: true },
   });
 
-  if (!session) return null;
-  if (session.expiresAt < new Date()) {
-    await prisma.session.delete({ where: { id: session.id } }).catch(() => {});
+  if (!session) {
+    // Cookie huérfana (sesión no existe) -> limpiar para evitar bucle proxy optimista
+    try {
+      cookieStore.delete(SESSION_COOKIE);
+      const alt = SESSION_COOKIE.startsWith("__Host-") ? SESSION_COOKIE.replace("__Host-", "") : `__Host-${SESSION_COOKIE}`;
+      cookieStore.delete(alt);
+    } catch {}
     return null;
   }
-  if (!session.user.active) return null;
+  if (session.expiresAt < new Date()) {
+    await prisma.session.delete({ where: { id: session.id } }).catch(() => {});
+    try {
+      cookieStore.delete(SESSION_COOKIE);
+      const alt = SESSION_COOKIE.startsWith("__Host-") ? SESSION_COOKIE.replace("__Host-", "") : `__Host-${SESSION_COOKIE}`;
+      cookieStore.delete(alt);
+    } catch {}
+    return null;
+  }
+  if (!session.user.active) {
+    try {
+      cookieStore.delete(SESSION_COOKIE);
+      const alt = SESSION_COOKIE.startsWith("__Host-") ? SESSION_COOKIE.replace("__Host-", "") : `__Host-${SESSION_COOKIE}`;
+      cookieStore.delete(alt);
+    } catch {}
+    return null;
+  }
 
   // actualizar lastSeenAt sin bloquear
   prisma.session

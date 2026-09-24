@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input, Textarea, Label, FieldError, HelpText } from "@/components/ui/input";
 import { FormProgress, Stepper } from "@/components/form/progress";
 import { FileUploader, AttachmentList } from "@/components/form/file-uploader";
+import { FieldHelp, InfoCallout, ExampleBox } from "@/components/form/field-help";
 import { saveDraftAction, submitSectionAction } from "@/actions/sections";
 import { deleteAttachmentAction } from "@/actions/attachments";
 import { useToast } from "@/components/ui/toast";
@@ -15,7 +16,36 @@ const steps = ["Para qué y quién", "Qué incluye", "Datos y ejemplos", "Inform
 const USER_TYPES = ["Administrador", "Analista contable", "Contador", "Asesor tributario", "Supervisor", "Cliente final", "Auditor", "Otro"] as const;
 const SCOPE_OPTIONS = ["Solo ajuste fiscal LISLR", "Ajuste fiscal y contable/financiero", "No estoy seguro", "Otro"] as const;
 const PROCESS_OPTIONS = ["Ajuste inicial", "Reajuste regular anual", "RAR", "Cálculo de obligaciones asociadas", "Depreciación/amortización fiscal", "Movimientos de patrimonio", "Altas y bajas de activos", "Inventarios", "Pasivos no monetarios", "Conciliación fiscal", "Exportación ISLR", "Otro"] as const;
+const PROCESS_DESCS: Record<string, string> = {
+  "Ajuste inicial": "Cálculo base al adoptar el sistema por primera vez.",
+  "Reajuste regular anual": "Actualización anual del patrimonio fiscal.",
+  RAR: "Resultado por inflación que ajusta tu declaración.",
+  "Cálculo de obligaciones asociadas": "Tributos vinculados al ajuste.",
+  "Depreciación/amortización fiscal": "Ajuste de activos fijos e intangibles.",
+  "Movimientos de patrimonio": "Aumentos, disminuciones y capitalizaciones.",
+  "Altas y bajas de activos": "Compras, ventas y retiros del ejercicio.",
+  Inventarios: "Existencias y costo de ventas.",
+  "Pasivos no monetarios": "Deudas no ajustables por inflación.",
+  "Conciliación fiscal": "Cruce entre contabilidad y declaración.",
+  "Exportación ISLR": "Archivo listo para tu declaración.",
+  Otro: "Otros procesos de tu administración fiscal.",
+};
 const PARTIDA_OPTIONS = ["Activos fijos", "Inventarios", "Inmuebles", "Intangibles", "Inversiones", "Construcción en proceso", "Deudas de largo plazo", "Capital social", "Reservas", "Resultados acumulados", "Aportes", "Dividendos", "Otro"] as const;
+const PARTIDA_DESCS: Record<string, string> = {
+  "Activos fijos": "Maquinaria, equipos y mobiliario.",
+  Inventarios: "Mercancía y materia prima.",
+  Inmuebles: "Terrenos y edificaciones.",
+  Intangibles: "Marcas, licencias y software.",
+  Inversiones: "Participaciones y títulos valores.",
+  "Construcción en proceso": "Obras aún no terminadas.",
+  "Deudas de largo plazo": "Préstamos mayores a un año.",
+  "Capital social": "Aportes iniciales de socios.",
+  Reservas: "Utilidades reservadas por ley o estatutos.",
+  "Resultados acumulados": "Ganancias o pérdidas de ejercicios anteriores.",
+  Aportes: "Aumentos de capital posteriores.",
+  Dividendos: "Distribuciones a socios.",
+  Otro: "Otras partidas de tu balance fiscal.",
+};
 const ORIGINS = ["Carga manual", "Excel/CSV", "Sistema administrativo-contable", "API", "Archivos exportados", "Otro"] as const;
 const INPC_OPTS = ["Carga manual", "Importación desde Excel", "Fuente externa", "Validación por administrador", "Otro"] as const;
 const REPORTS = ["Hoja detallada de cálculo por partida", "Balance General Fiscal Actualizado", "RAR", "Conciliación fiscal", "Resumen para declaración ISLR", "Asiento contable sugerido", "Expediente por empresa/período", "Informe PDF", "Exportación Excel/CSV", "Formatos específicos para clientes/contadores/SENIAT", "Otro"] as const;
@@ -383,11 +413,12 @@ export function SectionClient({ submissionId, sectionNumber, initialAnswers, sta
             <>
               <div>
                 <Label htmlFor="objective">Objetivo principal del sistema *</Label>
-                <Textarea id="objective" value={s1.objective} onChange={(e) => setS1({ ...s1, objective: e.target.value })} placeholder="Ej: hacer cálculos que hoy se llevan en Excel, reducir errores, generar soportes para ISLR, centralizar información." rows={4} disabled={isReadOnly} />
+                <Textarea id="objective" value={s1.objective} onChange={(e) => setS1({ ...s1, objective: e.target.value })} placeholder="Ej: Centralizar el cálculo del ajuste por inflación para 12 empresas y generar el balance fiscal para la declaración ISLR." rows={4} disabled={isReadOnly} />
                 <div className="flex justify-between mt-1.5">
                   <HelpText>Mín 30, máx 500 caracteres</HelpText>
                   <span className="text-xs text-slate-400">{s1.objective.length}/500</span>
                 </div>
+                <FieldHelp example="Unificar el cálculo del ajuste inicial y reajuste regular, hoy en Excel, para generar RAR, balance fiscal y soportes de declaración ISLR con trazabilidad por usuario." tip="Piensa en el dolor actual: ¿qué te quita más tiempo hoy en administración y fiscal?" />
                 {errors["objective"] && <FieldError message={errors["objective"]} />}
               </div>
 
@@ -413,8 +444,9 @@ export function SectionClient({ submissionId, sectionNumber, initialAnswers, sta
 
               <div>
                 <Label htmlFor="permissions">Permisos por tipo de usuario *</Label>
-                <HelpText>Indique qué puede hacer cada perfil: cargar, editar, calcular, aprobar, cerrar períodos, exportar o solo consultar.</HelpText>
-                <Textarea id="permissions" value={s1.permissions} onChange={(e) => setS1({ ...s1, permissions: e.target.value })} rows={4} disabled={isReadOnly} />
+                <HelpText>Quién puede cargar, calcular, aprobar, cerrar período o solo consultar en tu administración.</HelpText>
+                <Textarea id="permissions" value={s1.permissions} onChange={(e) => setS1({ ...s1, permissions: e.target.value })} rows={4} disabled={isReadOnly} placeholder="Ej: Contador carga y calcula · Administrador aprueba INPC y cierra período · Cliente solo consulta informes para declaración" />
+                <FieldHelp example="Contador: carga datos y calcula ajuste. Administrador: valida INPC y cierra período fiscal. Supervisor: revisa y aprueba. Cliente final: solo descarga informes." />
                 <div className="flex justify-between mt-1.5">
                   <span className="text-xs text-slate-500">Mín 30, máx 1000</span>
                   <span className="text-xs text-slate-400">{s1.permissions.length}/1000</span>
@@ -456,11 +488,15 @@ export function SectionClient({ submissionId, sectionNumber, initialAnswers, sta
 
               <div>
                 <Label>Procesos incluidos en la primera versión *</Label>
+                <HelpText>Elige los que usas hoy en tu declaración — toca para marcar.</HelpText>
                 <div className="mt-2 grid sm:grid-cols-2 gap-2">
                   {PROCESS_OPTIONS.map((opt) => (
-                    <label key={opt} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm cursor-pointer hover:bg-slate-50">
-                      <input type="checkbox" checked={s2.processes.includes(opt)} onChange={() => setS2({ ...s2, processes: toggleArrayInline(s2.processes, opt) })} disabled={isReadOnly} />
-                      {opt}
+                    <label key={opt} className="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 cursor-pointer hover:bg-slate-50 has-[:checked]:border-[#0f2b46]/30 has-[:checked]:bg-slate-50">
+                      <input type="checkbox" checked={s2.processes.includes(opt)} onChange={() => setS2({ ...s2, processes: toggleArrayInline(s2.processes, opt) })} disabled={isReadOnly} className="mt-0.5 rounded" />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium leading-none text-slate-900">{opt}</span>
+                        <span className="block text-xs leading-4 text-slate-500 mt-1">{PROCESS_DESCS[opt]}</span>
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -476,11 +512,15 @@ export function SectionClient({ submissionId, sectionNumber, initialAnswers, sta
 
               <div>
                 <Label>Tipos de partidas a procesar *</Label>
+                <HelpText>Partidas de tu balance fiscal que deben ajustarse por inflación.</HelpText>
                 <div className="mt-2 grid sm:grid-cols-2 gap-2">
                   {PARTIDA_OPTIONS.map((opt) => (
-                    <label key={opt} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm cursor-pointer hover:bg-slate-50">
-                      <input type="checkbox" checked={s2.partidas.includes(opt)} onChange={() => setS2({ ...s2, partidas: toggleArrayInline(s2.partidas, opt) })} disabled={isReadOnly} />
-                      {opt}
+                    <label key={opt} className="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 cursor-pointer hover:bg-slate-50 has-[:checked]:border-[#0f2b46]/30 has-[:checked]:bg-slate-50">
+                      <input type="checkbox" checked={s2.partidas.includes(opt)} onChange={() => setS2({ ...s2, partidas: toggleArrayInline(s2.partidas, opt) })} disabled={isReadOnly} className="mt-0.5 rounded" />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium leading-none text-slate-900">{opt}</span>
+                        <span className="block text-xs leading-4 text-slate-500 mt-1">{PARTIDA_DESCS[opt]}</span>
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -496,7 +536,8 @@ export function SectionClient({ submissionId, sectionNumber, initialAnswers, sta
 
               <div>
                 <Label htmlFor="exclusions">Partidas que deben excluirse *</Label>
-                <Textarea id="exclusions" value={s2.exclusions} onChange={(e) => setS2({ ...s2, exclusions: e.target.value })} rows={3} disabled={isReadOnly} />
+                <Textarea id="exclusions" value={s2.exclusions} onChange={(e) => setS2({ ...s2, exclusions: e.target.value })} rows={3} disabled={isReadOnly} placeholder="Ej: Cuentas en moneda extranjera ya ajustadas, partidas monetarias, provisiones no realizadas..." />
+                <FieldHelp example="Pasivos en divisas reexpresados, anticipos a proveedores no monetarios en litigio, o intangibles no amortizables según tu criterio fiscal." tip="Si dudas, describe cómo lo excluyes hoy para la declaración." />
                 <HelpText>Mín 20, máx 500</HelpText>
                 {errors["exclusions"] && <FieldError message={errors["exclusions"]} />}
               </div>
@@ -567,14 +608,16 @@ export function SectionClient({ submissionId, sectionNumber, initialAnswers, sta
 
               <div>
                 <Label>Responsable de aprobar los índices INPC *</Label>
-                <Input value={s3.inpcApprover} onChange={(e) => setS3({ ...s3, inpcApprover: e.target.value })} maxLength={200} placeholder="Nombre, cargo o rol" disabled={isReadOnly} />
+                <Input value={s3.inpcApprover} onChange={(e) => setS3({ ...s3, inpcApprover: e.target.value })} maxLength={200} placeholder="Ej: Contador General o Administración fiscal — quien valida el INPC antes del cierre" disabled={isReadOnly} />
+                <FieldHelp example="Contador General valida el INPC del BCV antes de cada declaración. Si es manual, indica el cargo." />
                 {errors["inpcApprover"] && <FieldError message={errors["inpcApprover"]} />}
               </div>
 
               <div>
                 <Label>Criterios, fórmulas y reglas de cálculo *</Label>
-                <HelpText>Se almacena verbatim, sin interpretación automática.</HelpText>
-                <Textarea value={s3.criteria} onChange={(e) => setS3({ ...s3, criteria: e.target.value })} rows={4} placeholder="Describa criterios, fórmulas RAR, depreciación, patrimonio..." disabled={isReadOnly} />
+                <HelpText>Cómo calculas hoy el ajuste — lo guardamos tal cual, sin reinterpretar.</HelpText>
+                <Textarea value={s3.criteria} onChange={(e) => setS3({ ...s3, criteria: e.target.value })} rows={4} placeholder="Ej: Factor = INPC cierre / INPC origen aplicado a partidas no monetarias según LISLR art. 173..." disabled={isReadOnly} />
+                <FieldHelp title="Ver ejemplo fiscal" example="Factor = INPC cierre (480,5600) / INPC origen. Se aplica a activos fijos, inventarios y patrimonio según art. 173 LISLR, con INPC a 4 decimales." tip="Describe con tus palabras, como lo explicas a tu equipo de administración." />
                 <div className="flex justify-between mt-1.5">
                   <span className="text-xs text-slate-500">Mín 50, máx 2000</span>
                   <span className="text-xs text-slate-400">{s3.criteria.length}/2000</span>
@@ -583,7 +626,10 @@ export function SectionClient({ submissionId, sectionNumber, initialAnswers, sta
               </div>
 
               <div>
-                <div className="flex items-center justify-between">
+                <InfoCallout>
+                  Estos 2 casos nos ayudan a validar tu declaración. Ya vienen precargados como ejemplo — ajústalos con números reales o descríbelos a tu manera. No necesitan ser perfectos.
+                </InfoCallout>
+                <div className="flex items-center justify-between mt-3">
                   <Label>Casos de cálculo * (mínimo 2)</Label>
                   {!isReadOnly && (
                     <Button variant="secondary" size="sm" onClick={() => setS3({ ...s3, cases: [...s3.cases, { ...EMPTY_CASE }] })}>
@@ -744,7 +790,8 @@ export function SectionClient({ submissionId, sectionNumber, initialAnswers, sta
           {sectionNumber === 4 && (
             <>
               <div>
-                <Label>Reportes, documentos y exportaciones requeridos *</Label>
+                <Label>Reportes que necesitas para tu administración y declaración *</Label>
+                <HelpText>Marca lo que hoy entregas o te piden para fiscal. Solo lo que usas.</HelpText>
                 <div className="mt-2 grid sm:grid-cols-2 gap-2">
                   {REPORTS.map((opt) => (
                     <label key={opt} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm cursor-pointer hover:bg-slate-50">
@@ -753,6 +800,7 @@ export function SectionClient({ submissionId, sectionNumber, initialAnswers, sta
                     </label>
                   ))}
                 </div>
+                <FieldHelp example="Balance Fiscal Actualizado + RAR + Resumen para declaración ISLR son los más comunes. Elige solo los que tu administración exige." />
                 {errors["reports"] && <FieldError message={errors["reports"]} />}
                 {s4.reports.includes("Formatos específicos para clientes/contadores/SENIAT") && (
                   <div className="mt-3">
@@ -914,6 +962,10 @@ export function SectionClient({ submissionId, sectionNumber, initialAnswers, sta
               </div>
             </>
           )}
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs leading-5 text-slate-600">
+            💡 Puedes guardar como borrador y volver después — todo queda en tu administración, sin perder avance.
+          </div>
 
           {/* Actions */}
           <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-100">
