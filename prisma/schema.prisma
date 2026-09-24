@@ -1,0 +1,211 @@
+generator client {
+  provider   = "prisma-client"
+  output     = "../src/generated/prisma"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+//
+// Enums
+//
+
+enum UserRole {
+  ADMIN
+  RESPONDENT
+}
+
+enum FormStatus {
+  IN_PROGRESS
+  COMPLETED
+  REVIEW
+  APPROVED
+  ARCHIVED
+}
+
+enum SectionStatus {
+  DRAFT
+  SUBMITTED
+  REOPENED
+}
+
+enum AttachmentCategory {
+  DATA_EXAMPLE
+  CALCULATION_CASE
+  BALANCE
+  CHART_OF_ACCOUNTS
+  FINAL_REPORT
+  REVIEWED_CASE
+  LEGAL_FRAMEWORK
+  COMPANY_LIST
+  OTHER
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  SUBMISSION_CREATED
+  SECTION_DRAFT_SAVED
+  SECTION_SUBMITTED
+  SECTION_REOPENED
+  FILE_UPLOADED
+  FILE_DELETED
+  FILE_DOWNLOADED
+  USER_CREATED
+  USER_DEACTIVATED
+}
+
+//
+// Models
+//
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         UserRole  @default(RESPONDENT)
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastLoginAt  DateTime?
+
+  sessions    Session[]
+  submissions FormSubmission[]
+  attachments Attachment[] @relation("UploadedBy")
+  auditLogs   AuditLog[]
+
+  @@map("users")
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  userAgent  String?
+  ipAddress  String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model FormSubmission {
+  id             String     @id @default(cuid())
+  userId         String
+  title          String     @default("Sistema de ajuste por inflación fiscal inicial y regulares")
+  status         FormStatus @default(IN_PROGRESS)
+  currentSection Int        @default(1)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  submittedAt    DateTime?
+  completedAt    DateTime?
+
+  user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sections SectionSubmission[]
+  attachments Attachment[]
+  auditLogs AuditLog[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("form_submissions")
+}
+
+model SectionSubmission {
+  id             String        @id @default(cuid())
+  submissionId   String
+  sectionNumber  Int
+  status         SectionStatus @default(DRAFT)
+  answers        Json          @default("{}")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  submittedAt    DateTime?
+  version        Int           @default(1)
+
+  submission FormSubmission    @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  cases      CalculationCase[]
+
+  @@unique([submissionId, sectionNumber])
+  @@index([submissionId])
+  @@map("section_submissions")
+}
+
+model CalculationCase {
+  id                  String   @id @default(cuid())
+  sectionSubmissionId String
+  position            Int
+  caseType            String
+  otherCaseType       String?
+  identifier          String
+  initialBalances     String   @db.Text
+  date                DateTime @db.Date
+  inpc                Decimal  @db.Decimal(20, 4)
+  movements           String   @db.Text
+  expectedResult      String   @db.Text
+  ruleExplanation     String   @db.Text
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  sectionSubmission SectionSubmission @relation(fields: [sectionSubmissionId], references: [id], onDelete: Cascade)
+  attachments       Attachment[]
+
+  @@index([sectionSubmissionId])
+  @@index([position])
+  @@map("calculation_cases")
+}
+
+model Attachment {
+  id                 String              @id @default(cuid())
+  submissionId       String
+  sectionNumber      Int
+  calculationCaseId  String?
+  category           AttachmentCategory
+  originalName       String
+  pathname           String
+  blobUrl            String
+  mimeType           String
+  extension          String
+  sizeBytes          Int
+  uploadedById       String
+  createdAt          DateTime            @default(now())
+  deletedAt          DateTime?
+
+  submission      FormSubmission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  calculationCase CalculationCase? @relation(fields: [calculationCaseId], references: [id], onDelete: SetNull)
+  uploadedBy      User             @relation("UploadedBy", fields: [uploadedById], references: [id])
+
+  @@index([submissionId])
+  @@index([sectionNumber])
+  @@index([calculationCaseId])
+  @@index([uploadedById])
+  @@map("attachments")
+}
+
+model AuditLog {
+  id           String      @id @default(cuid())
+  userId       String
+  submissionId String?
+  action       AuditAction
+  entity       String
+  entityId     String
+  metadata     Json?       @default("{}")
+  createdAt    DateTime    @default(now())
+  ipAddress    String?
+  userAgent    String?
+
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submission FormSubmission?  @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([submissionId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

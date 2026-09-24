@@ -1,0 +1,30 @@
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { ToastProvider } from "@/components/ui/toast";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "Sistema de Ajuste por Inflación Fiscal | Levantamiento Inicial",
+  description:
+    "Plataforma de levantamiento inicial para el Sistema de ajuste por inflación fiscal inicial y regulares. Recopilación estructurada de requerimientos tributarios, contables y documentales.",
+};
+
+export default function RootLayout({ children }: LayoutProps<"/">) {
+  return (
+    <html lang="es" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col bg-[#f8fafc] text-slate-900 selection:bg-sky-100">
+        <ToastProvider>{children}</ToastProvider>
+      </body>
+    </html>
+  );
+}
