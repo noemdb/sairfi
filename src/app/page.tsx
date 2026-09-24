@@ -11,150 +11,170 @@ export default async function HomePage() {
     <div className="min-h-screen bg-[#f8fafc]">
       <AppHeader />
       <main>
-        {/* Hero */}
+        {/* Hero — lenguaje cercano, sin presión */}
         <section className="border-b border-slate-200 bg-white">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
             <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-10 items-center">
               <div>
-                <p className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
-                  Levantamiento inicial · Plataforma especializada
+                <p className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Diagnóstico guiado · 5 pasos · a tu ritmo
                 </p>
                 <h1 className="mt-4 text-[30px] sm:text-[36px] font-semibold tracking-tight text-[#0f2b46] leading-[1.1]">
-                  Sistema de Ajuste por inflación fiscal inicial y regulares
+                  Cuéntanos cómo llevas
+                  <span className="block font-normal text-slate-700">tu ajuste por inflación fiscal</span>
                 </h1>
-                <p className="mt-3 text-lg font-medium text-slate-700">Formulario de levantamiento inicial</p>
-                <p className="mt-4 text-[15px] leading-7 text-slate-600 max-w-2xl">
-                  Plataforma profesional para recopilar de forma estructurada requerimientos tributarios, contables, fuentes de datos,
-                  reglas de cálculo, casos de prueba, reportes, controles operativos y documentación de soporte. Diseñada para
-                  definir con precisión el alcance del futuro sistema fiscal.
+                <p className="mt-3 text-[17px] leading-7 text-slate-700 max-w-2xl">
+                  Queremos entender cómo trabajas hoy en administración, contabilidad y declaraciones — sin tecnicismos — para diseñar un sistema que te ahorre tiempo en cada cierre.
+                </p>
+                <p className="mt-3 text-[14.5px] leading-6 text-slate-500 max-w-2xl">
+                  No necesitas tener todo a mano. Cuéntanos con tus palabras de dónde salen los datos, cómo revisas y qué parte te quita más tiempo. Nosotros le damos forma fiscal.
                 </p>
 
                 <div className="mt-6 flex flex-wrap gap-3">
                   {user ? (
                     <>
                       <Link href="/dashboard">
-                        <Button size="lg">Continuar al panel →</Button>
+                        <Button size="lg">Continuar donde quedaste →</Button>
                       </Link>
                       <Link href={`/dashboard`}>
                         <Button variant="secondary" size="lg">
-                          Ver mis levantamientos
+                          Ver mis avances
                         </Button>
                       </Link>
                     </>
                   ) : (
                     <>
                       <Link href="/login">
-                        <Button size="lg">Iniciar levantamiento →</Button>
+                        <Button size="lg">Comenzar — toma ~12 min →</Button>
                       </Link>
-                      <Link href="/login">
+                      <a href="#recorrido">
                         <Button variant="secondary" size="lg">
-                          Iniciar sesión
+                          Ver qué preguntaremos
                         </Button>
-                      </Link>
+                      </a>
                     </>
                   )}
                 </div>
 
-                <div className="mt-6 flex items-center gap-4 text-sm text-slate-500">
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" /> Tu información se guarda de forma segura
+                <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs leading-5 text-slate-500">
+                  <span className="inline-flex items-center gap-1.5">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M12 22a7 7 0 0 0 7-7c0-4-7-11-7-11S5 11 5 15a7 7 0 0 0 7 7Z"/><circle cx="12" cy="15" r="2.5"/></svg>
+                    Sin compromiso · no genera obligación tributaria
                   </span>
                   <span className="hidden sm:inline text-slate-300">·</span>
-                  <span>Puedes continuar cuando quieras</span>
+                  <span>Puedes pausar y volver después</span>
                 </div>
               </div>
 
-              <Card className="shadow-lg border-slate-200">
+              <Card id="recorrido" className="shadow-lg border-slate-200 scroll-mt-8">
                 <CardHeader>
-                  <CardTitle>¿Qué recolecta este levantamiento?</CardTitle>
-                  <CardDescription>5 pasos · avanza a tu ritmo · guarda cuando quieras</CardDescription>
+                  <CardTitle className="text-[15px]">Un recorrido breve por tu proceso</CardTitle>
+                  <CardDescription>Nada que preparar. Responde con lo que tienes a la mano.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   <div className="flex gap-3">
                     <span className="h-7 w-7 rounded-full bg-[#0f2b46] text-white flex items-center justify-center text-xs font-semibold">1</span>
                     <div>
-                      <p className="font-medium text-slate-900">Objetivo y usuario</p>
-                      <p className="text-slate-500">Objetivo, perfiles y permisos</p>
+                      <p className="font-medium text-slate-900">Para qué y quién lo usará</p>
+                      <p className="text-slate-500">Objetivo en tu administración y quiénes participan</p>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <span className="h-7 w-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs font-semibold">2</span>
                     <div>
-                      <p className="font-medium text-slate-900">Alcance tributario y contable</p>
-                      <p className="text-slate-500">Procesos, partidas y exclusiones</p>
+                      <p className="font-medium text-slate-900">Qué debe incluir tu ajuste fiscal</p>
+                      <p className="text-slate-500">Partidas, qué se excluye y cómo lo haces hoy</p>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <span className="h-7 w-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs font-semibold">3</span>
                     <div>
-                      <p className="font-medium text-slate-900">Datos y cálculo</p>
-                      <p className="text-slate-500">INPC, criterios y 2 casos de ejemplo</p>
+                      <p className="font-medium text-slate-900">Datos, INPC y ejemplos</p>
+                      <p className="text-slate-500">De dónde salen los números y 2 casos reales</p>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <span className="h-7 w-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs font-semibold">4</span>
                     <div>
-                      <p className="font-medium text-slate-900">Reportes, controles y entrega</p>
-                      <p className="text-slate-500">Reportes, volumen, despliegue</p>
+                      <p className="font-medium text-slate-900">Informes y controles</p>
+                      <p className="text-slate-500">Qué reportes necesitas para tu declaración</p>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <span className="h-7 w-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs font-semibold">5</span>
                     <div>
-                      <p className="font-medium text-slate-900">Material adjunto</p>
-                      <p className="text-slate-500">6 documentos obligatorios + soportes</p>
+                      <p className="font-medium text-slate-900">Documentos que ya usas</p>
+                      <p className="text-slate-500">Si los tienes, súbelos. Si no, nos cuentas</p>
                     </div>
                   </div>
+                  <p className="pt-2 text-xs leading-5 text-slate-500 border-t border-slate-100">
+                    Tip: muchos lo completan por partes, en dos o tres ratos. Queda todo guardado automáticamente.
+                  </p>
                 </CardContent>
               </Card>
             </div>
           </div>
         </section>
 
-        {/* Estado */}
+        {/* Confianza sutil */}
         <section className="mx-auto max-w-6xl px-4 sm:px-6 py-8">
           <div className="grid md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Información siempre segura</CardTitle>
+            <Card className="bg-slate-50/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <span className="h-7 w-7 rounded-full bg-white border border-slate-200 grid place-items-center text-slate-700">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22a7 7 0 0 0 7-7c0-4-7-11-7-11S5 11 5 15a7 7 0 0 0 7 7Z"/><circle cx="12" cy="15" r="2.5"/></svg>
+                  </span>
+                  Tranquilidad ante todo
+                </CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-slate-600 leading-relaxed">
-                Tus datos se guardan de forma segura y solo tú y las personas autorizadas pueden verlos.
+                Solo tú y el equipo autorizado pueden ver lo que compartes. Cifrado y trazabilidad completa.
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Guarda y continúa después</CardTitle>
+            <Card className="bg-slate-50/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <span className="h-7 w-7 rounded-full bg-white border border-slate-200 grid place-items-center text-slate-700">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-5a1 1 0 0 0-1-1H8"/></svg>
+                  </span>
+                  Avanza sin presión
+                </CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-slate-600 leading-relaxed">
-                Guarda tu avance como borrador, sal y vuelve cuando quieras. Nada se pierde.
+                Guarda como borrador, cierra y vuelve cuando te sirva. Nada se pierde, nada vence.
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Tus archivos protegidos</CardTitle>
+            <Card className="bg-slate-50/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <span className="h-7 w-7 rounded-full bg-white border border-slate-200 grid place-items-center text-slate-700">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 13H8"/><path d="M16 17H8"/><path d="M13 13h3"/></svg>
+                  </span>
+                  Si lo tienes, súbelo
+                </CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-slate-600 leading-relaxed">
-                Puedes subir documentos de hasta 20 MB con total privacidad. Solo usuarios autorizados pueden descargarlos.
+                Hasta 20 MB por archivo. Si no lo tienes ahora, describe dónde está. No bloquea tu avance.
               </CardContent>
             </Card>
           </div>
 
           <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <p className="font-medium text-slate-900">Estado de autenticación</p>
+              <p className="font-medium text-slate-900">{user ? `Hola, ${user.name}` : "¿Listo cuando tú digas?"}</p>
               <p className="text-sm text-slate-500">
-                {user ? `Autenticado como ${user.name} (${user.email}) · Rol ${user.role}` : "No autenticado — inicie sesión para crear un levantamiento"}
+                {user ? `Sesión activa como ${user.email} · ${user.role} — retoma donde quedaste` : "Crea tu acceso en segundos y ve a tu ritmo. Sin compromiso."}
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 shrink-0">
               {user ? (
                 <Link href="/dashboard">
-                  <Button>Ir al dashboard</Button>
+                  <Button>Continuar →</Button>
                 </Link>
               ) : (
                 <Link href="/login">
-                  <Button>Comenzar ahora</Button>
+                  <Button>Crear acceso</Button>
                 </Link>
               )}
             </div>

@@ -10,7 +10,7 @@ import { saveDraftAction, submitSectionAction } from "@/actions/sections";
 import { deleteAttachmentAction } from "@/actions/attachments";
 import { useToast } from "@/components/ui/toast";
 
-const steps = ["Objetivo y usuario", "Alcance tributario", "Datos y cálculo", "Reportes y entrega", "Material adjunto"];
+const steps = ["Para qué y quién", "Qué incluye", "Datos y ejemplos", "Informes", "Documentos"];
 
 const USER_TYPES = ["Administrador", "Analista contable", "Contador", "Asesor tributario", "Supervisor", "Cliente final", "Auditor", "Otro"] as const;
 const SCOPE_OPTIONS = ["Solo ajuste fiscal LISLR", "Ajuste fiscal y contable/financiero", "No estoy seguro", "Otro"] as const;
@@ -306,11 +306,11 @@ export function SectionClient({ submissionId, sectionNumber, initialAnswers, sta
   }
 
   const sectionMeta = [
-    { title: "Objetivo y usuario", purpose: "Recopilar el objetivo del sistema y los perfiles/permisos de usuario." },
-    { title: "Alcance tributario y contable", purpose: "Definir alcance fiscal/contable, procesos y partidas." },
-    { title: "Datos y cálculo", purpose: "Definir origen de datos, INPC, criterios y casos de cálculo." },
-    { title: "Reportes, controles y entrega", purpose: "Definir reportes requeridos, controles operativos y condiciones de entrega." },
-    { title: "Material adjunto", purpose: "Recopilar documentación de soporte para el levantamiento." },
+    { title: "Para qué y quién lo usará", purpose: "Cuéntanos el objetivo en tu administración y quiénes usarán el sistema en el día a día." },
+    { title: "Qué debe incluir tu ajuste fiscal", purpose: "Qué partidas entran, qué se excluye y cómo lo manejas hoy en tu contabilidad." },
+    { title: "Datos, INPC y ejemplos", purpose: "De dónde salen los números, cómo usas el INPC y 2 casos reales de tu declaración." },
+    { title: "Informes y controles", purpose: "Qué informes necesitas para tu declaración y cómo controlas cada cierre." },
+    { title: "Documentos que ya usas", purpose: "Sube lo que tengas a mano de tu administración fiscal — si no está, nos cuentas dónde está." },
   ][sectionNumber - 1];
 
   return (

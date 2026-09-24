@@ -6,6 +6,7 @@ import { listSubmissions } from "@/lib/domain/submissions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, Badge } from "@/components/ui/card";
 import { CreateSubmissionButton } from "./create-button";
+import { DeleteSubmissionButton } from "./delete-button";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,7 @@ export default async function DashboardPage() {
               return (
                 <Card key={s.id} className="hover:shadow-md transition-shadow">
                   <CardHeader className="flex flex-row items-start justify-between gap-4">
-                    <div>
+                    <div className="min-w-0">
                       <CardTitle className="text-base">{s.title}</CardTitle>
                       <p className="text-sm text-slate-500 mt-1">
                         {(s as unknown as { user?: { email: string; name: string } }).user
@@ -70,9 +71,12 @@ export default async function DashboardPage() {
                         · Actualizado {new Date(s.updatedAt).toLocaleDateString("es-VE")} · Creado {new Date(s.createdAt).toLocaleDateString("es-VE")}
                       </p>
                     </div>
-                    <Badge variant={s.status === "COMPLETED" ? "success" : s.status === "IN_PROGRESS" ? "default" : "muted"}>
-                      {statusLabel[s.status] || s.status}
-                    </Badge>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Badge variant={s.status === "COMPLETED" ? "success" : s.status === "IN_PROGRESS" ? "default" : "muted"}>
+                        {statusLabel[s.status] || s.status}
+                      </Badge>
+                      <DeleteSubmissionButton submissionId={s.id} title={s.title} />
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center gap-4 mb-3">

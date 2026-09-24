@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sistema de Ajuste por Inflación Fiscal | Levantamiento Inicial",
+  title: "Sistema de ajuste por Inflación Fiscal | Levantamiento Inicial",
   description:
     "Plataforma de levantamiento inicial para el Sistema de ajuste por inflación fiscal inicial y regulares. Recopilación estructurada de requerimientos tributarios, contables y documentales.",
 };
