@@ -12,15 +12,15 @@ export function CreateSubmissionButton({ label = "+ Nuevo levantamiento", size =
     try {
       const res = await fetch("/api/submissions", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" } });
       const text = await res.text();
-      let data: { id?: string; error?: string };
+      let body: { data?: { id?: string }; error?: { code?: string; message?: string } | string };
       try {
-        data = JSON.parse(text);
+        body = JSON.parse(text);
       } catch {
         throw new Error(`Respuesta inesperada del servidor: ${text.slice(0, 120)}`);
       }
-      if (!res.ok) throw new Error(data.error || "No se pudo crear");
-      if (!data.id) throw new Error("Respuesta sin ID");
-      window.location.href = `/submissions/${data.id}`;
+      if (!res.ok) throw new Error(typeof body.error === 'string' ? body.error : body.error?.message || "No se pudo crear");
+      if (!body.data?.id) throw new Error("Respuesta sin ID");
+      window.location.href = `/submissions/${body.data.id}`;
     } catch (e) {
       setError((e as Error).message);
       setPending(false);

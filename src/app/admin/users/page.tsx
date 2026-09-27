@@ -15,7 +15,12 @@ export default async function AdminUsersPage() {
   if (!user) redirect("/login");
   if (user.role !== "ADMIN") redirect("/dashboard");
 
-  const users = await prisma.user.findMany({ orderBy: { createdAt: "desc" } });
+  const users = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { roles: { include: { role: true } } },
+  });
+  const roleNames = (u: (typeof users)[number]) =>
+    u.roles.map((r) => r.role.nombre).join(', ') || 'sin rol';
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
@@ -51,7 +56,7 @@ export default async function AdminUsersPage() {
                       <p className="text-xs text-slate-500">Creado {new Date(u.createdAt).toLocaleDateString("es-VE")} · Último login {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString("es-VE") : "—"}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant={u.role === "ADMIN" ? "default" : "muted"}>{u.role}</Badge>
+                      <Badge variant={u.roles.some((r) => r.role.nombre === 'administrador') ? "default" : "muted"}>{roleNames(u)}</Badge>
                       <Badge variant={u.active ? "success" : "warning"}>{u.active ? "Activo" : "Inactivo"}</Badge>
                       {u.active && u.id !== user.id && (
                         <form action={deactivateUserFormAction}>

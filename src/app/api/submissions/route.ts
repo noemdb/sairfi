@@ -6,7 +6,8 @@ import { auditLog } from "@/lib/auth/audit";
 export async function POST(_req: NextRequest) {
   try {
     const user = await getSessionUser();
-    if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    if (!user)
+      return NextResponse.json({ error: { code: 'UNAUTHENTICATED', message: 'No autenticado' } }, { status: 401 });
 
     const submission = await createSubmission(user.id);
     const meta = await getRequestMeta();
@@ -20,9 +21,12 @@ export async function POST(_req: NextRequest) {
       userAgent: meta.userAgent,
     });
 
-    return NextResponse.json({ id: submission.id }, { status: 201 });
+    return NextResponse.json({ data: { id: submission.id } }, { status: 201 });
   } catch (e) {
     console.error("[api/submissions] error", e);
-    return NextResponse.json({ error: (e as Error).message || "Error interno" }, { status: 500 });
+    return NextResponse.json(
+      { error: { code: 'INTERNAL_ERROR', message: 'No fue posible crear el levantamiento. Inténtelo nuevamente.' } },
+      { status: 500 },
+    );
   }
 }

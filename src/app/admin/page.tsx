@@ -18,6 +18,11 @@ export default async function AdminPage() {
         <p className="text-sm text-slate-500 mt-1">Gestión de usuarios, levantamientos y auditoría</p>
 
         <div className="mt-6 grid sm:grid-cols-3 gap-4">
+          <Link href="/admin/companies" className="rounded-2xl border border-slate-200 bg-white p-6 hover:shadow-sm">
+            <h2 className="font-semibold text-slate-900">Empresas</h2>
+            <p className="text-sm text-slate-500 mt-1">Registro fiscal, RIF y ejercicios (Fase 1).</p>
+            <span className="mt-3 inline-flex text-sm font-medium text-sky-700">Gestionar →</span>
+          </Link>
           <Link href="/admin/users" className="rounded-2xl border border-slate-200 bg-white p-6 hover:shadow-sm">
             <h2 className="font-semibold text-slate-900">Usuarios</h2>
             <p className="text-sm text-slate-500 mt-1">Crear y desactivar cuentas. Roles ADMIN / RESPONDENT.</p>
@@ -32,6 +37,11 @@ export default async function AdminPage() {
             <h2 className="font-semibold text-slate-900">Auditoría</h2>
             <p className="text-sm text-slate-500 mt-1">Trazabilidad de login, envíos y archivos.</p>
             <span className="mt-3 inline-flex text-sm font-medium text-sky-700">Ver auditoría →</span>
+          </Link>
+          <Link href="/admin/price-indices" className="rounded-2xl border border-slate-200 bg-white p-6 hover:shadow-sm">
+            <h2 className="font-semibold text-slate-900">Índices INPC</h2>
+            <p className="text-sm text-slate-500 mt-1">Carga, aprobación y corrección versionada (Fase 2).</p>
+            <span className="mt-3 inline-flex text-sm font-medium text-sky-700">Gestionar →</span>
           </Link>
         </div>
       </main>

@@ -74,7 +74,7 @@ export async function deleteSubmissionAction(submissionId: string): Promise<{ ok
   const meta = await getRequestMeta();
   await auditLog({
     userId: user.id,
-    action: "SECTION_DRAFT_SAVED",
+    action: "SUBMISSION_DELETED",
     entity: "FormSubmission",
     entityId: submissionId,
     submissionId: null,

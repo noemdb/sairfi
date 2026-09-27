@@ -9,7 +9,8 @@ const MAX = 20 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  if (!user)
+    return NextResponse.json({ error: { code: 'UNAUTHENTICATED', message: 'No autenticado' } }, { status: 401 });
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
@@ -18,16 +19,16 @@ export async function POST(req: NextRequest) {
   const category = String(formData.get("category") || "OTHER");
 
   if (!file || !submissionId || !sectionNumber) {
-    return NextResponse.json({ error: "Faltan campos" }, { status: 400 });
+    return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: 'Faltan campos: file, submissionId y sectionNumber son obligatorios' } }, { status: 400 });
   }
 
   const ext = file.name.split(".").pop()?.toLowerCase() || "";
-  if (!ALLOWED.has(ext)) return NextResponse.json({ error: `Extensión no permitida: ${ext}` }, { status: 400 });
-  if (file.size > MAX) return NextResponse.json({ error: "Archivo excede 20 MB" }, { status: 400 });
+  if (!ALLOWED.has(ext)) return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: `Extensión no permitida: ${ext}` } }, { status: 400 });
+  if (file.size > MAX) return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: 'Archivo excede 20 MB' } }, { status: 400 });
 
   const submission = await prisma.formSubmission.findUnique({ where: { id: submissionId } });
-  if (!submission) return NextResponse.json({ error: "Submission no encontrada" }, { status: 404 });
-  if (user.role !== "ADMIN" && submission.userId !== user.id) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  if (!submission) return NextResponse.json({ error: { code: 'NOT_FOUND', message: 'Levantamiento no encontrado' } }, { status: 404 });
+  if (user.role !== "ADMIN" && submission.userId !== user.id) return NextResponse.json({ error: { code: 'FORBIDDEN', message: 'No autorizado' } }, { status: 403 });
 
   // Generar pathname único: submissions/{id}/section/{n}/{category}/{timestamp}-{original}
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
       storedPathname = (blob as { pathname: string }).pathname || pathname;
     } catch (e) {
       console.error("blob upload failed", e);
-      return NextResponse.json({ error: "Error al almacenar en Blob" }, { status: 500 });
+      return NextResponse.json({ error: { code: 'STORAGE_ERROR', message: 'Error al almacenar en Blob. Inténtelo nuevamente.' } }, { status: 500 });
     }
   } else {
     // Fallback local (desarrollo sin token): simular blobUrl privado servido por /api/files
@@ -86,5 +87,5 @@ export async function POST(req: NextRequest) {
     userAgent: ua,
   });
 
-  return NextResponse.json({ ok: true, attachment: att });
+  return NextResponse.json({ data: { attachment: att } });
 }

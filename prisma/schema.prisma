@@ -1,6 +1,6 @@
 generator client {
-  provider   = "prisma-client"
-  output     = "../src/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
   previewFeatures = ["driverAdapters"]
 }
 
@@ -9,13 +9,15 @@ datasource db {
 }
 
 //
+// Convenciones (DATABASE.md §1, ADR-011):
+// - IDs cuid() en todo el archivo (los modelos MVP ya los usaban; cambiar a
+//   uuid() rompería FKs sin beneficio funcional — desviación anotada de §1).
+// - Tablas y columnas físicas en snake_case vía @@map/@map; campos Prisma en camelCase.
+// - Decimal fiscal: dinero (18,2), índices (20,6), factores (20,8) — §7.2.
+
+//
 // Enums
 //
-
-enum UserRole {
-  ADMIN
-  RESPONDENT
-}
 
 enum FormStatus {
   IN_PROGRESS
@@ -47,6 +49,7 @@ enum AuditAction {
   LOGIN
   LOGOUT
   SUBMISSION_CREATED
+  SUBMISSION_DELETED
   SECTION_DRAFT_SAVED
   SECTION_SUBMITTED
   SECTION_REOPENED
@@ -55,6 +58,25 @@ enum AuditAction {
   FILE_DOWNLOADED
   USER_CREATED
   USER_DEACTIVATED
+  // Fase 1.1 (empresas y ejercicios). Los bloques 1.2+ agregan las suyas con
+  // ALTER TYPE ... ADD VALUE (no requiere reescribir la tabla).
+  COMPANY_CREATED
+  COMPANY_UPDATED
+  PERIOD_CREATED
+  PERIOD_OPENED
+  PERIOD_CLOSED
+  PERIOD_REOPENED
+  INDEX_CREATED
+  INDEX_APPROVED
+  INDEX_REPLACED
+  ITEM_CREATED
+  ITEM_UPDATED
+  MOVEMENT_CREATED
+  IMPORT_CREATED
+  CALC_EXECUTED
+  CALC_SUBMITTED
+  CALC_APPROVED
+  CALC_ANNULLED
 }
 
 //
@@ -66,7 +88,9 @@ model User {
   email        String    @unique
   name         String
   passwordHash String
-  role         UserRole  @default(RESPONDENT)
+  // ADR-011: sin columna role — la autorización vive en RoleUser/Role.
+  // Se conserva `active` (SUSPENDIDO ≡ active=false); el código de sesión
+  // depende de esta columna y cambiarla rompería Fase M sin beneficio.
   active       Boolean   @default(true)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -74,8 +98,17 @@ model User {
 
   sessions    Session[]
   submissions FormSubmission[]
-  attachments Attachment[] @relation("UploadedBy")
+  attachments Attachment[]     @relation("UploadedBy")
   auditLogs   AuditLog[]
+  roles       RoleUser[]
+  companies   CompanyUser[]
+
+  // Fase 1+: aprobaciones y cargas del motor fiscal
+  approvedPriceIndices PriceIndex[]            @relation("IndexApprover")
+  approvedPeriods      FiscalPeriod[]          @relation("PeriodApprover")
+  approvedCalculations AdjustmentCalculation[] @relation("CalculationApprover")
+  uploadedFiles        File[]                  @relation("FileUploader")
+  importBatches        ImportBatch[]           @relation("BatchImporter")
 
   @@map("users")
 }
@@ -108,10 +141,10 @@ model FormSubmission {
   submittedAt    DateTime?
   completedAt    DateTime?
 
-  user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sections SectionSubmission[]
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sections    SectionSubmission[]
   attachments Attachment[]
-  auditLogs AuditLog[]
+  auditLogs   AuditLog[]
 
   @@index([userId])
   @@index([status])
@@ -119,15 +152,15 @@ model FormSubmission {
 }
 
 model SectionSubmission {
-  id             String        @id @default(cuid())
-  submissionId   String
-  sectionNumber  Int
-  status         SectionStatus @default(DRAFT)
-  answers        Json          @default("{}")
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  submittedAt    DateTime?
-  version        Int           @default(1)
+  id            String        @id @default(cuid())
+  submissionId  String
+  sectionNumber Int
+  status        SectionStatus @default(DRAFT)
+  answers       Json          @default("{}")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  submittedAt   DateTime?
+  version       Int           @default(1)
 
   submission FormSubmission    @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   cases      CalculationCase[]
@@ -162,20 +195,20 @@ model CalculationCase {
 }
 
 model Attachment {
-  id                 String              @id @default(cuid())
-  submissionId       String
-  sectionNumber      Int
-  calculationCaseId  String?
-  category           AttachmentCategory
-  originalName       String
-  pathname           String
-  blobUrl            String
-  mimeType           String
-  extension          String
-  sizeBytes          Int
-  uploadedById       String
-  createdAt          DateTime            @default(now())
-  deletedAt          DateTime?
+  id                String             @id @default(cuid())
+  submissionId      String
+  sectionNumber     Int
+  calculationCaseId String?
+  category          AttachmentCategory
+  originalName      String
+  pathname          String
+  blobUrl           String
+  mimeType          String
+  extension         String
+  sizeBytes         Int
+  uploadedById      String
+  createdAt         DateTime           @default(now())
+  deletedAt         DateTime?
 
   submission      FormSubmission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   calculationCase CalculationCase? @relation(fields: [calculationCaseId], references: [id], onDelete: SetNull)
@@ -191,21 +224,357 @@ model Attachment {
 model AuditLog {
   id           String      @id @default(cuid())
   userId       String
+  companyId    String? // ADR-011: auditoría unificada — null en eventos del levantamiento (Fase M)
   submissionId String?
   action       AuditAction
   entity       String
   entityId     String
   metadata     Json?       @default("{}")
+  oldValues    Json? // ADR-011: valores antes del cambio (solo eventos fiscales)
+  newValues    Json? // ADR-011: valores después del cambio (solo eventos fiscales)
   createdAt    DateTime    @default(now())
   ipAddress    String?
   userAgent    String?
 
   user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  submission FormSubmission?  @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+  company    Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  submission FormSubmission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([companyId])
   @@index([submissionId])
   @@index([action])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+//
+// RBAC + núcleo fiscal (ADR-011, DATABASE.md §3).
+// Tablas y columnas físicas en snake_case; CompanyUser SIN rol (DATABASE.md §7.4).
+//
+
+model Role {
+  // IDs fijos sembrados por la migración (role-admin, role-analyst,
+  // role-accountant, role-advisor, role-auditor) para backfills deterministas.
+  id          String   @id
+  nombre      String   @unique
+  descripcion String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  users       RoleUser[]
+  permissions PermissionRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  nombre      String   @unique
+  descripcion String?
+  recurso     String
+  accion      String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  roles PermissionRole[]
+
+  @@unique([recurso, accion])
+  @@map("permissions")
+}
+
+model RoleUser {
+  roleId    String   @map("role_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, userId])
+  @@map("role_user")
+}
+
+model PermissionRole {
+  permissionId String   @map("permission_id")
+  roleId       String   @map("role_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([permissionId, roleId])
+  @@map("permission_role")
+}
+
+model Company {
+  id                        String    @id @default(cuid())
+  nombre                    String    @db.VarChar(255)
+  rif                       String    @unique @db.VarChar(20)
+  direccionFiscal           String?   @map("direccion_fiscal") @db.Text
+  actividadEconomica        String?   @map("actividad_economica") @db.VarChar(255)
+  fechaInicioOperaciones    DateTime? @map("fecha_inicio_operaciones")
+  fechaCierreFiscalHabitual String?   @map("fecha_cierre_fiscal_habitual") @db.VarChar(5)
+  estado                    String    @default("ACTIVA") @db.VarChar(20)
+  configuracion             Json?
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+
+  members       CompanyUser[]
+  fiscalPeriods FiscalPeriod[]
+  priceIndices  PriceIndex[]
+  fiscalItems   FiscalItem[]
+  calculations  AdjustmentCalculation[]
+  files         File[]
+  auditLogs     AuditLog[]
+
+  @@index([estado])
+  @@map("companies")
+}
+
+model CompanyUser {
+  companyId String   @map("company_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([companyId, userId])
+  @@map("company_user")
+}
+
+model FiscalPeriod {
+  id                  String    @id @default(cuid())
+  companyId           String    @map("company_id")
+  fechaInicio         DateTime  @map("fecha_inicio")
+  fechaCierre         DateTime  @map("fecha_cierre")
+  estado              String    @default("BORRADOR") @db.VarChar(30)
+  tipo                String    @default("REGULAR") @db.VarChar(20)
+  ejercicioAnteriorId String?   @map("ejercicio_anterior_id")
+  aprobadoPorId       String?   @map("aprobado_por_id")
+  aprobadoEn          DateTime? @map("aprobado_en")
+  cerradoEn           DateTime? @map("cerrado_en")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  company           Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  ejercicioAnterior FiscalPeriod?           @relation("PeriodoAnterior", fields: [ejercicioAnteriorId], references: [id])
+  siguientes        FiscalPeriod[]          @relation("PeriodoAnterior")
+  aprobadoPor       User?                   @relation("PeriodApprover", fields: [aprobadoPorId], references: [id])
+  fiscalItems       FiscalItem[]
+  fiscalMovements   FiscalMovement[]
+  calculations      AdjustmentCalculation[]
+  importBatches     ImportBatch[]
+  // R-204 (un solo ejercicio abierto por empresa) se aplica con un índice
+  // único PARCIAL manual en la migración — Prisma no los expresa en el
+  // schema (ver DATABASE.md §3, corrección §0 #2).
+
+  @@unique([companyId, fechaInicio, fechaCierre])
+  @@index([companyId])
+  @@index([estado])
+  @@index([tipo])
+  @@index([ejercicioAnteriorId])
+  @@map("fiscal_periods")
+}
+
+model PriceIndex {
+  id               String    @id @default(cuid())
+  companyId        String?   @map("company_id")
+  tipo             String    @default("INPC") @db.VarChar(20)
+  fuente           String    @db.VarChar(100)
+  anio             Int
+  mes              Int
+  valor            Decimal   @db.Decimal(20, 6)
+  version          Int       @default(1)
+  estado           String    @default("BORRADOR") @db.VarChar(20)
+  archivoSoporteId String?   @map("archivo_soporte_id")
+  aprobadoPorId    String?   @map("aprobado_por_id")
+  aprobadoEn       DateTime? @map("aprobado_en")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  company        Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  archivoSoporte File?    @relation(fields: [archivoSoporteId], references: [id])
+  aprobadoPor    User?    @relation("IndexApprover", fields: [aprobadoPorId], references: [id])
+  // Índices globales (company_id NULL) necesitan además un parcial manual
+  // (los NULL no se consideran iguales) — ver migración y DATABASE.md §3.
+
+  @@unique([companyId, tipo, fuente, anio, mes, version])
+  @@index([companyId])
+  @@index([tipo])
+  @@index([anio])
+  @@index([mes])
+  @@index([estado])
+  @@map("price_indices")
+}
+
+model FiscalItem {
+  id                     String    @id @default(cuid())
+  companyId              String    @map("company_id")
+  fiscalPeriodId         String    @map("fiscal_period_id")
+  cuentaContable         String    @map("cuenta_contable") @db.VarChar(50)
+  nombreCuenta           String    @map("nombre_cuenta") @db.VarChar(255)
+  tipo                   String    @db.VarChar(20)
+  clasificacionMonetaria String?   @map("clasificacion_monetaria") @db.VarChar(20)
+  categoriaFiscal        String?   @map("categoria_fiscal") @db.VarChar(50)
+  fechaAdquisicion       DateTime? @map("fecha_adquisicion")
+  valorHistorico         Decimal   @map("valor_historico") @db.Decimal(18, 2)
+  valorFiscalBase        Decimal   @map("valor_fiscal_base") @db.Decimal(18, 2)
+  ajusteAcumulado        Decimal   @default(0) @map("ajuste_acumulado") @db.Decimal(18, 2)
+  valorFiscalActualizado Decimal?  @map("valor_fiscal_actualizado") @db.Decimal(18, 2)
+  indiceBase             Decimal?  @map("indice_base") @db.Decimal(20, 6)
+  indiceCierre           Decimal?  @map("indice_cierre") @db.Decimal(20, 6)
+  factorAplicado         Decimal?  @map("factor_aplicado") @db.Decimal(20, 8)
+  vidaUtil               Int?      @map("vida_util")
+  metodoDepreciacion     String?   @map("metodo_depreciacion") @db.VarChar(50)
+  estado                 String    @default("ACTIVA") @db.VarChar(30)
+  documentoSoporteId     String?   @map("documento_soporte_id")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  company          Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  fiscalPeriod     FiscalPeriod        @relation(fields: [fiscalPeriodId], references: [id], onDelete: Cascade)
+  documentoSoporte File?               @relation(fields: [documentoSoporteId], references: [id])
+  fiscalMovements  FiscalMovement[]
+  results          CalculationResult[]
+  // clasificacionMonetaria/categoriaFiscal nullables mientras
+  // estado = PENDIENTE_DE_CLASIFICACION (DOMAIN.md §6.1); el snapshot
+  // (valorFiscalActualizado…) solo lo escribe el motor al aprobar (§7.1).
+
+  @@index([companyId])
+  @@index([fiscalPeriodId])
+  @@index([tipo])
+  @@index([clasificacionMonetaria])
+  @@index([categoriaFiscal])
+  @@index([cuentaContable])
+  @@index([estado])
+  @@index([fiscalPeriodId, clasificacionMonetaria])
+  @@map("fiscal_items")
+}
+
+model FiscalMovement {
+  id                 String   @id @default(cuid())
+  fiscalItemId       String   @map("fiscal_item_id")
+  fiscalPeriodId     String   @map("fiscal_period_id")
+  tipo               String   @db.VarChar(30)
+  fecha              DateTime
+  valor              Decimal  @db.Decimal(18, 2)
+  documentoSoporteId String?  @map("documento_soporte_id")
+  indiceBase         Decimal? @map("indice_base") @db.Decimal(20, 6)
+  indiceCierre       Decimal? @map("indice_cierre") @db.Decimal(20, 6)
+  factorAplicado     Decimal? @map("factor_aplicado") @db.Decimal(20, 8)
+  ajusteGenerado     Decimal? @map("ajuste_generado") @db.Decimal(18, 2)
+  observaciones      String?  @db.Text
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  fiscalItem       FiscalItem   @relation(fields: [fiscalItemId], references: [id], onDelete: Cascade)
+  fiscalPeriod     FiscalPeriod @relation(fields: [fiscalPeriodId], references: [id], onDelete: Cascade)
+  documentoSoporte File?        @relation(fields: [documentoSoporteId], references: [id])
+
+  @@index([fiscalItemId])
+  @@index([fiscalPeriodId])
+  @@index([tipo])
+  @@index([fecha])
+  @@map("fiscal_movements")
+}
+
+model AdjustmentCalculation {
+  id                   String    @id @default(cuid())
+  companyId            String    @map("company_id")
+  fiscalPeriodId       String    @map("fiscal_period_id")
+  tipo                 String    @db.VarChar(30)
+  fechaCalculo         DateTime  @map("fecha_calculo")
+  versionReglas        String    @map("version_reglas") @db.VarChar(50)
+  versionIndices       String    @map("version_indices") @db.VarChar(50)
+  estado               String    @default("BORRADOR") @db.VarChar(30)
+  ajusteTotalActivos   Decimal?  @map("ajuste_total_activos") @db.Decimal(18, 2)
+  ajusteTotalPasivos   Decimal?  @map("ajuste_total_pasivos") @db.Decimal(18, 2)
+  efectoNetoPatrimonio Decimal?  @map("efecto_neto_patrimonio") @db.Decimal(18, 2)
+  aprobadoPorId        String?   @map("aprobado_por_id")
+  aprobadoEn           DateTime? @map("aprobado_en")
+  cerradoEn            DateTime? @map("cerrado_en")
+  observaciones        String?   @db.Text
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  company      Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  fiscalPeriod FiscalPeriod        @relation(fields: [fiscalPeriodId], references: [id], onDelete: Cascade)
+  aprobadoPor  User?               @relation("CalculationApprover", fields: [aprobadoPorId], references: [id])
+  results      CalculationResult[]
+
+  @@index([companyId])
+  @@index([fiscalPeriodId])
+  @@index([tipo])
+  @@index([estado])
+  @@map("adjustment_calculations")
+}
+
+model CalculationResult {
+  id                      String   @id @default(cuid())
+  adjustmentCalculationId String   @map("adjustment_calculation_id")
+  fiscalItemId            String   @map("fiscal_item_id")
+  valorBase               Decimal  @map("valor_base") @db.Decimal(18, 2)
+  indiceBase              Decimal  @map("indice_base") @db.Decimal(20, 6)
+  indiceCierre            Decimal  @map("indice_cierre") @db.Decimal(20, 6)
+  factorAplicado          Decimal  @map("factor_aplicado") @db.Decimal(20, 8)
+  valorActualizado        Decimal  @map("valor_actualizado") @db.Decimal(18, 2)
+  ajusteGenerado          Decimal  @map("ajuste_generado") @db.Decimal(18, 2)
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  adjustmentCalculation AdjustmentCalculation @relation(fields: [adjustmentCalculationId], references: [id], onDelete: Cascade)
+  fiscalItem            FiscalItem            @relation(fields: [fiscalItemId], references: [id], onDelete: Cascade)
+
+  @@unique([adjustmentCalculationId, fiscalItemId])
+  @@index([adjustmentCalculationId])
+  @@index([fiscalItemId])
+  @@map("calculation_results")
+}
+
+model ImportBatch {
+  id              String   @id @default(cuid())
+  fiscalPeriodId  String   @map("fiscal_period_id")
+  tipo            String   @db.VarChar(30)
+  nombreArchivo   String   @map("nombre_archivo") @db.VarChar(255)
+  archivoId       String?  @map("archivo_id")
+  filasTotales    Int      @map("filas_totales")
+  filasValidas    Int      @map("filas_validas")
+  filasRechazadas Int      @map("filas_rechazadas")
+  estado          String   @default("PROCESADO") @db.VarChar(20)
+  errores         Json?
+  importadoPorId  String?  @map("importado_por_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  fiscalPeriod FiscalPeriod @relation(fields: [fiscalPeriodId], references: [id], onDelete: Cascade)
+  archivo      File?        @relation(fields: [archivoId], references: [id])
+  importadoPor User?        @relation("BatchImporter", fields: [importadoPorId], references: [id])
+
+  @@index([fiscalPeriodId])
+  @@index([tipo])
+  @@index([estado])
+  @@map("import_batches")
+}
+
+model File {
+  id               String   @id @default(cuid())
+  companyId        String?  @map("company_id")
+  nombreOriginal   String   @map("nombre_original") @db.VarChar(255)
+  nombreAlmacenado String   @map("nombre_almacenado") @db.VarChar(255)
+  tipoMime         String   @map("tipo_mime") @db.VarChar(100)
+  tamanoBytes      Int      @map("tamano_bytes")
+  url              String   @db.Text
+  subidoPorId      String?  @map("subido_por_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  company         Company?         @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  subidoPor       User?            @relation("FileUploader", fields: [subidoPorId], references: [id])
+  priceIndices    PriceIndex[]
+  fiscalItems     FiscalItem[]
+  fiscalMovements FiscalMovement[]
+  importBatches   ImportBatch[]
+  // Soportes fiscales (DATABASE.md §3). Los adjuntos del levantamiento
+  // siguen en `attachments` (exigen submissionId); no mezclar (ADR-011).
+
+  @@index([companyId])
+  @@index([subidoPorId])
+  @@map("files")
 }

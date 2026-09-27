@@ -34,8 +34,11 @@ export function CreateUserForm() {
       <div>
         <Label htmlFor="role">Rol</Label>
         <select name="role" id="role" className="mt-1 w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm">
-          <option value="RESPONDENT">RESPONDENT</option>
-          <option value="ADMIN">ADMIN</option>
+          <option value="role-analyst">Analista</option>
+          <option value="role-accountant">Contador</option>
+          <option value="role-advisor">Asesor tributario</option>
+          <option value="role-auditor">Auditor</option>
+          <option value="role-admin">Administrador</option>
         </select>
       </div>
       {state.message && <p className={`text-sm p-2 rounded-xl border ${state.ok ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-red-50 border-red-200 text-red-700"}`}>{state.message}</p>}

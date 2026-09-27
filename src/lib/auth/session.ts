@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { randomBytes, createHash } from "crypto";
 import { prisma } from "@/lib/db/client";
+import { hasPermission } from "./permissions";
 
 function getSessionCookieName(): string {
   const raw = process.env.SESSION_COOKIE_NAME || "__Host-session";
@@ -17,7 +18,12 @@ export type SessionUser = {
   id: string;
   email: string;
   name: string;
+  // Puente ADR-011/Fase 1.1: el modelo RBAC de 5 roles vive en RoleUser;
+  // aquí se expone el equivalente legacy para no romper Fase M.
+  // `roles` trae los nombres reales (administrador, analista, …) y es lo
+  // que usan requireRole/requirePermission. Fase 1.2+ construye con ellos.
   role: "ADMIN" | "RESPONDENT";
+  roles: string[];
   active: boolean;
 };
 
@@ -60,7 +66,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const tokenHash = hashToken(token);
   const session = await prisma.session.findUnique({
     where: { tokenHash },
-    include: { user: true },
+    include: { user: { include: { roles: { include: { role: true } } } } },
   });
 
   if (!session) {
@@ -98,11 +104,17 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     })
     .catch(() => {});
 
+  // Puente ADR-011: ADMIN ⇔ tiene el rol 'administrador'; sin roles ⇒
+  // RESPONDENT (mínimo privilegio). Fase 1.2 resuelve los 5 roles reales.
+  const roleNombres = session.user.roles.map((r) => r.role.nombre);
+  const isAdmin = roleNombres.includes('administrador');
+
   return {
     id: session.user.id,
     email: session.user.email,
     name: session.user.name,
-    role: session.user.role as SessionUser["role"],
+    role: isAdmin ? 'ADMIN' : 'RESPONDENT',
+    roles: roleNombres,
     active: session.user.active,
   };
 }
@@ -110,6 +122,20 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 export async function requireSession(): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) throw new Error("No autenticado");
+  return user;
+}
+
+/** Guarda de rol (Fase 1.2): exige al menos uno de los roles indicados. */
+export async function requireRole(allowedRoles: string[]): Promise<SessionUser> {
+  const user = await requireSession();
+  if (!user.roles.some((r) => allowedRoles.includes(r))) throw new Error("No autorizado");
+  return user;
+}
+
+/** Guarda de permiso (Fase 1.2): exige recurso:accion según la matriz RBAC. */
+export async function requirePermission(recurso: string, accion: string): Promise<SessionUser> {
+  const user = await requireSession();
+  if (!hasPermission(user.roles, recurso, accion)) throw new Error("No autorizado");
   return user;
 }
 

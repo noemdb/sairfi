@@ -57,7 +57,21 @@ export const ModelName = {
   SectionSubmission: 'SectionSubmission',
   CalculationCase: 'CalculationCase',
   Attachment: 'Attachment',
-  AuditLog: 'AuditLog'
+  AuditLog: 'AuditLog',
+  Role: 'Role',
+  Permission: 'Permission',
+  RoleUser: 'RoleUser',
+  PermissionRole: 'PermissionRole',
+  Company: 'Company',
+  CompanyUser: 'CompanyUser',
+  FiscalPeriod: 'FiscalPeriod',
+  PriceIndex: 'PriceIndex',
+  FiscalItem: 'FiscalItem',
+  FiscalMovement: 'FiscalMovement',
+  AdjustmentCalculation: 'AdjustmentCalculation',
+  CalculationResult: 'CalculationResult',
+  ImportBatch: 'ImportBatch',
+  File: 'File'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -81,7 +95,6 @@ export const UserScalarFieldEnum = {
   email: 'email',
   name: 'name',
   passwordHash: 'passwordHash',
-  role: 'role',
   active: 'active',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
@@ -178,17 +191,244 @@ export type AttachmentScalarFieldEnum = (typeof AttachmentScalarFieldEnum)[keyof
 export const AuditLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
+  companyId: 'companyId',
   submissionId: 'submissionId',
   action: 'action',
   entity: 'entity',
   entityId: 'entityId',
   metadata: 'metadata',
+  oldValues: 'oldValues',
+  newValues: 'newValues',
   createdAt: 'createdAt',
   ipAddress: 'ipAddress',
   userAgent: 'userAgent'
 } as const
 
 export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
+
+
+export const RoleScalarFieldEnum = {
+  id: 'id',
+  nombre: 'nombre',
+  descripcion: 'descripcion',
+  createdAt: 'createdAt'
+} as const
+
+export type RoleScalarFieldEnum = (typeof RoleScalarFieldEnum)[keyof typeof RoleScalarFieldEnum]
+
+
+export const PermissionScalarFieldEnum = {
+  id: 'id',
+  nombre: 'nombre',
+  descripcion: 'descripcion',
+  recurso: 'recurso',
+  accion: 'accion',
+  createdAt: 'createdAt'
+} as const
+
+export type PermissionScalarFieldEnum = (typeof PermissionScalarFieldEnum)[keyof typeof PermissionScalarFieldEnum]
+
+
+export const RoleUserScalarFieldEnum = {
+  roleId: 'roleId',
+  userId: 'userId',
+  createdAt: 'createdAt'
+} as const
+
+export type RoleUserScalarFieldEnum = (typeof RoleUserScalarFieldEnum)[keyof typeof RoleUserScalarFieldEnum]
+
+
+export const PermissionRoleScalarFieldEnum = {
+  permissionId: 'permissionId',
+  roleId: 'roleId',
+  createdAt: 'createdAt'
+} as const
+
+export type PermissionRoleScalarFieldEnum = (typeof PermissionRoleScalarFieldEnum)[keyof typeof PermissionRoleScalarFieldEnum]
+
+
+export const CompanyScalarFieldEnum = {
+  id: 'id',
+  nombre: 'nombre',
+  rif: 'rif',
+  direccionFiscal: 'direccionFiscal',
+  actividadEconomica: 'actividadEconomica',
+  fechaInicioOperaciones: 'fechaInicioOperaciones',
+  fechaCierreFiscalHabitual: 'fechaCierreFiscalHabitual',
+  estado: 'estado',
+  configuracion: 'configuracion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CompanyScalarFieldEnum = (typeof CompanyScalarFieldEnum)[keyof typeof CompanyScalarFieldEnum]
+
+
+export const CompanyUserScalarFieldEnum = {
+  companyId: 'companyId',
+  userId: 'userId',
+  createdAt: 'createdAt'
+} as const
+
+export type CompanyUserScalarFieldEnum = (typeof CompanyUserScalarFieldEnum)[keyof typeof CompanyUserScalarFieldEnum]
+
+
+export const FiscalPeriodScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  fechaInicio: 'fechaInicio',
+  fechaCierre: 'fechaCierre',
+  estado: 'estado',
+  tipo: 'tipo',
+  ejercicioAnteriorId: 'ejercicioAnteriorId',
+  aprobadoPorId: 'aprobadoPorId',
+  aprobadoEn: 'aprobadoEn',
+  cerradoEn: 'cerradoEn',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FiscalPeriodScalarFieldEnum = (typeof FiscalPeriodScalarFieldEnum)[keyof typeof FiscalPeriodScalarFieldEnum]
+
+
+export const PriceIndexScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  tipo: 'tipo',
+  fuente: 'fuente',
+  anio: 'anio',
+  mes: 'mes',
+  valor: 'valor',
+  version: 'version',
+  estado: 'estado',
+  archivoSoporteId: 'archivoSoporteId',
+  aprobadoPorId: 'aprobadoPorId',
+  aprobadoEn: 'aprobadoEn',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PriceIndexScalarFieldEnum = (typeof PriceIndexScalarFieldEnum)[keyof typeof PriceIndexScalarFieldEnum]
+
+
+export const FiscalItemScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  fiscalPeriodId: 'fiscalPeriodId',
+  cuentaContable: 'cuentaContable',
+  nombreCuenta: 'nombreCuenta',
+  tipo: 'tipo',
+  clasificacionMonetaria: 'clasificacionMonetaria',
+  categoriaFiscal: 'categoriaFiscal',
+  fechaAdquisicion: 'fechaAdquisicion',
+  valorHistorico: 'valorHistorico',
+  valorFiscalBase: 'valorFiscalBase',
+  ajusteAcumulado: 'ajusteAcumulado',
+  valorFiscalActualizado: 'valorFiscalActualizado',
+  indiceBase: 'indiceBase',
+  indiceCierre: 'indiceCierre',
+  factorAplicado: 'factorAplicado',
+  vidaUtil: 'vidaUtil',
+  metodoDepreciacion: 'metodoDepreciacion',
+  estado: 'estado',
+  documentoSoporteId: 'documentoSoporteId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FiscalItemScalarFieldEnum = (typeof FiscalItemScalarFieldEnum)[keyof typeof FiscalItemScalarFieldEnum]
+
+
+export const FiscalMovementScalarFieldEnum = {
+  id: 'id',
+  fiscalItemId: 'fiscalItemId',
+  fiscalPeriodId: 'fiscalPeriodId',
+  tipo: 'tipo',
+  fecha: 'fecha',
+  valor: 'valor',
+  documentoSoporteId: 'documentoSoporteId',
+  indiceBase: 'indiceBase',
+  indiceCierre: 'indiceCierre',
+  factorAplicado: 'factorAplicado',
+  ajusteGenerado: 'ajusteGenerado',
+  observaciones: 'observaciones',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FiscalMovementScalarFieldEnum = (typeof FiscalMovementScalarFieldEnum)[keyof typeof FiscalMovementScalarFieldEnum]
+
+
+export const AdjustmentCalculationScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  fiscalPeriodId: 'fiscalPeriodId',
+  tipo: 'tipo',
+  fechaCalculo: 'fechaCalculo',
+  versionReglas: 'versionReglas',
+  versionIndices: 'versionIndices',
+  estado: 'estado',
+  ajusteTotalActivos: 'ajusteTotalActivos',
+  ajusteTotalPasivos: 'ajusteTotalPasivos',
+  efectoNetoPatrimonio: 'efectoNetoPatrimonio',
+  aprobadoPorId: 'aprobadoPorId',
+  aprobadoEn: 'aprobadoEn',
+  cerradoEn: 'cerradoEn',
+  observaciones: 'observaciones',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AdjustmentCalculationScalarFieldEnum = (typeof AdjustmentCalculationScalarFieldEnum)[keyof typeof AdjustmentCalculationScalarFieldEnum]
+
+
+export const CalculationResultScalarFieldEnum = {
+  id: 'id',
+  adjustmentCalculationId: 'adjustmentCalculationId',
+  fiscalItemId: 'fiscalItemId',
+  valorBase: 'valorBase',
+  indiceBase: 'indiceBase',
+  indiceCierre: 'indiceCierre',
+  factorAplicado: 'factorAplicado',
+  valorActualizado: 'valorActualizado',
+  ajusteGenerado: 'ajusteGenerado',
+  createdAt: 'createdAt'
+} as const
+
+export type CalculationResultScalarFieldEnum = (typeof CalculationResultScalarFieldEnum)[keyof typeof CalculationResultScalarFieldEnum]
+
+
+export const ImportBatchScalarFieldEnum = {
+  id: 'id',
+  fiscalPeriodId: 'fiscalPeriodId',
+  tipo: 'tipo',
+  nombreArchivo: 'nombreArchivo',
+  archivoId: 'archivoId',
+  filasTotales: 'filasTotales',
+  filasValidas: 'filasValidas',
+  filasRechazadas: 'filasRechazadas',
+  estado: 'estado',
+  errores: 'errores',
+  importadoPorId: 'importadoPorId',
+  createdAt: 'createdAt'
+} as const
+
+export type ImportBatchScalarFieldEnum = (typeof ImportBatchScalarFieldEnum)[keyof typeof ImportBatchScalarFieldEnum]
+
+
+export const FileScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  nombreOriginal: 'nombreOriginal',
+  nombreAlmacenado: 'nombreAlmacenado',
+  tipoMime: 'tipoMime',
+  tamanoBytes: 'tamanoBytes',
+  url: 'url',
+  subidoPorId: 'subidoPorId',
+  createdAt: 'createdAt'
+} as const
+
+export type FileScalarFieldEnum = (typeof FileScalarFieldEnum)[keyof typeof FileScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -75,7 +75,8 @@ export async function createUserAction(_prev: ActionState, formData: FormData): 
     email: z.string().email(),
     name: z.string().min(2).max(100),
     password: z.string().min(8).max(128),
-    role: z.enum(["ADMIN", "RESPONDENT"]),
+    // Acepta IDs nuevos (role-*) y el legado (ADMIN/RESPONDENT) por compatibilidad.
+    role: z.enum(["ADMIN", "RESPONDENT", "role-admin", "role-analyst", "role-accountant", "role-advisor", "role-auditor"]),
   });
   const parsed = schema.safeParse(raw);
   if (!parsed.success) return { ok: false, message: "Datos inválidos", errors: parsed.error.flatten().fieldErrors };
@@ -85,12 +86,20 @@ export async function createUserAction(_prev: ActionState, formData: FormData): 
 
   const { hashPassword } = await import("@/lib/auth/password");
   const hash = await hashPassword(parsed.data.password);
+  // Puente ADR-011/Fase 1.2: el formulario envía IDs nuevos y se acepta el
+  // legado (ADMIN→administrador, RESPONDENT→analista).
+  const roleId =
+    parsed.data.role === "ADMIN"
+      ? "role-admin"
+      : parsed.data.role === "RESPONDENT"
+        ? "role-analyst"
+        : parsed.data.role;
   const user = await prisma.user.create({
     data: {
       email: parsed.data.email,
       name: parsed.data.name,
       passwordHash: hash,
-      role: parsed.data.role as never,
+      roles: { create: [{ role: { connect: { id: roleId } } }] },
     },
   });
 
@@ -100,7 +109,7 @@ export async function createUserAction(_prev: ActionState, formData: FormData): 
     action: "USER_CREATED",
     entity: "User",
     entityId: user.id,
-    metadata: { email: user.email, role: user.role },
+    metadata: { email: user.email, role: parsed.data.role, roleId },
     ipAddress: meta.ip,
     userAgent: meta.userAgent,
   });

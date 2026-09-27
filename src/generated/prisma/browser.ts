@@ -52,3 +52,73 @@ export type Attachment = Prisma.AttachmentModel
  * 
  */
 export type AuditLog = Prisma.AuditLogModel
+/**
+ * Model Role
+ * 
+ */
+export type Role = Prisma.RoleModel
+/**
+ * Model Permission
+ * 
+ */
+export type Permission = Prisma.PermissionModel
+/**
+ * Model RoleUser
+ * 
+ */
+export type RoleUser = Prisma.RoleUserModel
+/**
+ * Model PermissionRole
+ * 
+ */
+export type PermissionRole = Prisma.PermissionRoleModel
+/**
+ * Model Company
+ * 
+ */
+export type Company = Prisma.CompanyModel
+/**
+ * Model CompanyUser
+ * 
+ */
+export type CompanyUser = Prisma.CompanyUserModel
+/**
+ * Model FiscalPeriod
+ * 
+ */
+export type FiscalPeriod = Prisma.FiscalPeriodModel
+/**
+ * Model PriceIndex
+ * 
+ */
+export type PriceIndex = Prisma.PriceIndexModel
+/**
+ * Model FiscalItem
+ * 
+ */
+export type FiscalItem = Prisma.FiscalItemModel
+/**
+ * Model FiscalMovement
+ * 
+ */
+export type FiscalMovement = Prisma.FiscalMovementModel
+/**
+ * Model AdjustmentCalculation
+ * 
+ */
+export type AdjustmentCalculation = Prisma.AdjustmentCalculationModel
+/**
+ * Model CalculationResult
+ * 
+ */
+export type CalculationResult = Prisma.CalculationResultModel
+/**
+ * Model ImportBatch
+ * 
+ */
+export type ImportBatch = Prisma.ImportBatchModel
+/**
+ * Model File
+ * 
+ */
+export type File = Prisma.FileModel

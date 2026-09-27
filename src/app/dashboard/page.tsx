@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, Badge } from "@/components/ui/card";
 import { CreateSubmissionButton } from "./create-button";
 import { DeleteSubmissionButton } from "./delete-button";
+import { DownloadSubmissionButton } from "./download-button";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +77,7 @@ export default async function DashboardPage() {
                         {statusLabel[s.status] || s.status}
                       </Badge>
                       <DeleteSubmissionButton submissionId={s.id} title={s.title} />
+                      <DownloadSubmissionButton submissionId={s.id} title={s.title} />
                     </div>
                   </CardHeader>
                   <CardContent>

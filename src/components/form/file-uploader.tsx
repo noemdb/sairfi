@@ -35,8 +35,8 @@ export function FileUploader({ submissionId, sectionNumber, category, label, des
         fd.append("sectionNumber", String(sectionNumber));
         fd.append("category", category);
         const res = await fetch("/api/uploads", { method: "POST", body: fd });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Error al subir");
+        const data: { data?: unknown; error?: { code?: string; message?: string } | string } = await res.json();
+        if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : data.error?.message || "Error al subir");
       }
       const msg = files.length === 1 ? "Archivo guardado" : `${files.length} archivos guardados`;
       setSuccess("Archivo(s) registrado(s) correctamente");
