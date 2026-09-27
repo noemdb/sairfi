@@ -3,15 +3,79 @@ import * as React from "react";
 
 type Variant = "success" | "error" | "info" | "warning";
 
+export type ToastActionProps = {
+  children: React.ReactNode;
+  onClick: () => void;
+};
+
 type Toast = {
   id: string;
   title: string;
   description?: string;
   variant: Variant;
+  action?: ToastActionProps;
+};
+
+type ToastInput = {
+  title: string;
+  description?: string;
+  variant?: Variant;
+  actionProps?: ToastActionProps;
+};
+
+function toToast(input: ToastInput, id: string): Toast {
+  return {
+    id,
+    title: input.title,
+    description: input.description,
+    variant: input.variant || "info",
+    action: input.actionProps,
+  };
+}
+
+// API imperativa estilo `toast.add()` / `toast.close(id)`.
+// Funciona sin hook: el provider registra el dispatcher al montarse;
+// si aún no hay provider, los avisos se encolan y se vacían al montar.
+let seq = 0;
+let pushFn: ((t: Toast) => void) | null = null;
+let closeFn: ((id: string) => void) | null = null;
+const pendingQueue: Toast[] = [];
+
+function nextId() {
+  seq += 1;
+  return `t${seq}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+export const toast = {
+  add(input: ToastInput): string {
+    const t = toToast(input, nextId());
+    if (pushFn) pushFn(t);
+    else pendingQueue.push(t);
+    return t.id;
+  },
+  close(id: string) {
+    if (closeFn) closeFn(id);
+    else {
+      const i = pendingQueue.findIndex((t) => t.id === id);
+      if (i >= 0) pendingQueue.splice(i, 1);
+    }
+  },
+  success(title: string, description?: string): string {
+    return toast.add({ title, description, variant: "success" });
+  },
+  error(title: string, description?: string): string {
+    return toast.add({ title, description, variant: "error" });
+  },
+  info(title: string, description?: string): string {
+    return toast.add({ title, description, variant: "info" });
+  },
+  warning(title: string, description?: string): string {
+    return toast.add({ title, description, variant: "warning" });
+  },
 };
 
 type ToastContextValue = {
-  toast: (opts: { title: string; description?: string; variant?: Variant }) => void;
+  toast: (opts: ToastInput) => void;
   success: (title: string, description?: string) => void;
   error: (title: string, description?: string) => void;
   info: (title: string, description?: string) => void;
@@ -33,27 +97,48 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const add = React.useCallback(
-    (opts: { title: string; description?: string; variant?: Variant }) => {
-      const id = Math.random().toString(36).slice(2, 9);
-      const toast: Toast = { id, title: opts.title, description: opts.description, variant: opts.variant || "info" };
-      setToasts((prev) => [...prev, toast]);
+  const push = React.useCallback(
+    (t: Toast) => {
+      setToasts((prev) => [...prev.slice(-3), t]);
       // auto-dismiss 4.5s (5.5s para error)
-      const ttl = toast.variant === "error" ? 5500 : 4500;
-      setTimeout(() => remove(id), ttl);
+      const ttl = t.variant === "error" ? 5500 : 4500;
+      setTimeout(() => remove(t.id), ttl);
     },
     [remove]
   );
 
+  React.useEffect(() => {
+    pushFn = push;
+    closeFn = remove;
+    if (pendingQueue.length > 0) {
+      const queued = pendingQueue.splice(0);
+      queued.forEach(push);
+    }
+    return () => {
+      if (pushFn === push) pushFn = null;
+      if (closeFn === remove) closeFn = null;
+    };
+  }, [push, remove]);
+
   const value = React.useMemo<ToastContextValue>(
     () => ({
-      toast: add,
-      success: (title, description) => add({ title, description, variant: "success" }),
-      error: (title, description) => add({ title, description, variant: "error" }),
-      info: (title, description) => add({ title, description, variant: "info" }),
-      warning: (title, description) => add({ title, description, variant: "warning" }),
+      toast: (opts) => {
+        push(toToast(opts, nextId()));
+      },
+      success: (title, description) => {
+        push(toToast({ title, description, variant: "success" }, nextId()));
+      },
+      error: (title, description) => {
+        push(toToast({ title, description, variant: "error" }, nextId()));
+      },
+      info: (title, description) => {
+        push(toToast({ title, description, variant: "info" }, nextId()));
+      },
+      warning: (title, description) => {
+        push(toToast({ title, description, variant: "warning" }, nextId()));
+      },
     }),
-    [add]
+    [push]
   );
 
   return (
@@ -111,6 +196,14 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold leading-5 text-slate-900">{toast.title}</p>
         {toast.description && <p className="mt-1 text-sm leading-5 text-slate-600">{toast.description}</p>}
+        {toast.action && (
+          <button
+            onClick={toast.action.onClick}
+            className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-[#0f2b46] shadow-xs transition-colors hover:bg-slate-50 cursor-pointer"
+          >
+            {toast.action.children}
+          </button>
+        )}
       </div>
       <button
         onClick={onDismiss}

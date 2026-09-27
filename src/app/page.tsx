@@ -14,9 +14,21 @@ export default async function HomePage() {
       <AppHeader />
       <LandingContent user={user} />
 
-      <footer className="border-t border-slate-200 bg-white mt-12">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span className="text-sm text-slate-600">© 2026 SAIRFI — Sistema de Ajuste por Inflación Fiscal.</span>
+      <footer className="mt-12 border-t border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:px-6 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="grid h-8 w-8 place-items-center rounded-lg bg-[#0f2b46]">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden>
+                <rect x="2.5" y="10" width="4" height="7" rx="1" fill="white" fillOpacity="0.95" />
+                <rect x="8" y="6.5" width="4" height="10.5" rx="1" fill="white" />
+                <rect x="13.5" y="3.5" width="4" height="13.5" rx="1" fill="white" fillOpacity="0.95" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[#0f2b46]">© 2026 SAIRFI — Sistema de Ajuste por Inflación Fiscal.</p>
+              <p className="text-xs text-slate-500">LISLR Venezuela · Motor versionado · Trazabilidad completa</p>
+            </div>
+          </div>
           <span className="text-sm text-slate-600">
             Desarrollado por <span className="font-semibold text-[#0f2b46]">NoDoz</span>{" "}
             <a href="https://github.com/nomedb" target="_blank" rel="noopener noreferrer" className="font-medium text-[#0f2b46] hover:underline">

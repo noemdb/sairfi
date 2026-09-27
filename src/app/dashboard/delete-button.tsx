@@ -2,6 +2,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
+import { usePendingTask } from "@/components/ui/floating-pending";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { deleteSubmissionAction } from "@/actions/submissions";
 
@@ -9,6 +11,7 @@ export function DeleteSubmissionButton({ submissionId, title }: { submissionId: 
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  usePendingTask(pending, "Eliminando levantamiento…");
   const router = useRouter();
 
   function handleDelete() {
@@ -18,9 +21,12 @@ export function DeleteSubmissionButton({ submissionId, title }: { submissionId: 
         const res = await deleteSubmissionAction(submissionId);
         if (!res.ok) throw new Error(res.error || "No se pudo eliminar");
         setOpen(false);
+        toast.success("Levantamiento eliminado", title || "El levantamiento se borró correctamente.");
         router.refresh();
       } catch (e) {
-        setError((e as Error).message);
+        const msg = (e as Error).message;
+        setError(msg);
+        toast.error("No se pudo eliminar", msg);
       }
     });
   }

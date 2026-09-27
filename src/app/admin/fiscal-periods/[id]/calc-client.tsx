@@ -1,8 +1,11 @@
 "use client";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Input, Label } from "@/components/ui/input";
+import { Ban, Check, Play, Send } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
+import { usePendingTask } from "@/components/ui/floating-pending";
 import {
   annulCalculationAction,
   approveCalculationAction,
@@ -26,17 +29,23 @@ export function ExecuteCalcButton({ periodId, disabledReason }: { periodId: stri
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<CalcActionState>(init);
+  usePendingTask(pending, "Ejecutando cálculo…");
   return (
     <div className="space-y-2">
       <Button
+        variant="outline"
         disabled={pending || !!disabledReason}
         onClick={() =>
           startTransition(async () => {
-            setMsg(await executeCalculationAction(periodId));
+            const res = await executeCalculationAction(periodId);
+            setMsg(res);
+            if (res.ok) toast.success("Cálculo ejecutado", res.message);
+            else if (res.message) toast.error("No se pudo ejecutar el cálculo", res.message);
             router.refresh();
           })
         }
       >
+        <Play aria-hidden />
         {pending ? "Calculando..." : "Ejecutar cálculo"}
       </Button>
       {disabledReason && <p className="text-xs text-slate-500">{disabledReason}</p>}
@@ -65,29 +74,48 @@ export function CalcActions({
     (_prev: CalcActionState, fd: FormData) => annulCalculationAction(calcId, periodId, _prev, fd),
     init,
   );
+  usePendingTask(pending || annulPending, "Actualizando cálculo…");
 
-  const run = (fn: () => Promise<CalcActionState>) =>
+  const run = (fn: () => Promise<CalcActionState>, okTitle: string, errTitle: string) =>
     startTransition(async () => {
-      setMsg(await fn());
+      const res = await fn();
+      setMsg(res);
+      if (res.ok) toast.success(okTitle, res.message);
+      else if (res.message) toast.error(errTitle, res.message);
       router.refresh();
     });
+
+  const lastAnnulNotified = useRef<string | null>(null);
+  useEffect(() => {
+    if (annulState.message && lastAnnulNotified.current !== annulState.message) {
+      lastAnnulNotified.current = annulState.message;
+      if (annulState.ok) toast.success("Cálculo anulado", annulState.message);
+      else toast.error("No se pudo anular", annulState.message);
+      router.refresh();
+    }
+  }, [annulState, router]);
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       {estado === "CALCULADO" && canReview && (
-        <Button size="sm" disabled={pending} onClick={() => run(() => submitCalculationAction(calcId, periodId))}>
+        <Button size="sm" variant="outline" className="h-7 rounded-full text-xs" disabled={pending} onClick={() => run(() => submitCalculationAction(calcId, periodId), "Enviado a revisión", "No se pudo enviar a revisión")}>
+          <Send aria-hidden />
           Enviar a revisión
         </Button>
       )}
       {estado === "PENDIENTE_DE_REVISION" && canApprove && (
-        <Button size="sm" disabled={pending} onClick={() => run(() => approveCalculationAction(calcId, periodId))}>
+        <Button size="sm" variant="outline" className="h-7 rounded-full text-xs" disabled={pending} onClick={() => run(() => approveCalculationAction(calcId, periodId), "Cálculo aprobado", "No se pudo aprobar")}>
+          <Check aria-hidden />
           Aprobar
         </Button>
       )}
       {["CALCULADO", "PENDIENTE_DE_REVISION"].includes(estado) && canApprove && (
         <form action={annulAction} className="flex items-center gap-2">
           <Input name="motivo" placeholder="Motivo anulación (mín. 10)" minLength={10} maxLength={500} required className="h-8 text-xs" />
-          <Button size="sm" variant="secondary" type="submit" disabled={annulPending}>Anular</Button>
+          <Button size="sm" variant="outline" className="h-8 rounded-full text-xs" type="submit" disabled={annulPending}>
+            <Ban aria-hidden />
+            Anular
+          </Button>
         </form>
       )}
       {(msg.message || annulState.message) && (

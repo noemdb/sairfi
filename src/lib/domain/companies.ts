@@ -64,6 +64,68 @@ export async function listCompanies(scope: CompanyScope, opts?: { estado?: strin
   return { companies, total, page, pageSize };
 }
 
+export type CompanySummary = {
+  ejercicios: { porEstado: Record<string, number>; inicial: number; regular: number; total: number };
+  partidas: {
+    total: number;
+    pendientes: number;
+    monetarias: number;
+    noMonetarias: number;
+    valorHistorico: number;
+    ajusteAcumulado: number;
+  };
+  calculos: { porEstado: Record<string, number>; aprobados: number; efectoPatrimonioAprobado: number };
+};
+
+/** Cifras agregadas de una empresa: ejercicios, partidas y cálculos. */
+export async function getCompanySummary(companyId: string): Promise<CompanySummary> {
+  const [periodsByEstado, periodsByTipo, itemsTotal, itemsPendientes, itemsByClasif, itemsSums, calcsByEstado, calcsAprobadosAgg] =
+    await Promise.all([
+      prisma.fiscalPeriod.groupBy({ by: ["estado"], where: { companyId }, _count: true }),
+      prisma.fiscalPeriod.groupBy({ by: ["tipo"], where: { companyId }, _count: true }),
+      prisma.fiscalItem.count({ where: { companyId } }),
+      prisma.fiscalItem.count({ where: { companyId, estado: "PENDIENTE_DE_CLASIFICACION" } }),
+      prisma.fiscalItem.groupBy({ by: ["clasificacionMonetaria"], where: { companyId }, _count: true }),
+      prisma.fiscalItem.aggregate({
+        where: { companyId },
+        _sum: { valorHistorico: true, ajusteAcumulado: true },
+      }),
+      prisma.adjustmentCalculation.groupBy({ by: ["estado"], where: { companyId }, _count: true }),
+      prisma.adjustmentCalculation.aggregate({
+        where: { companyId, estado: "APROBADO" },
+        _count: true,
+        _sum: { efectoNetoPatrimonio: true },
+      }),
+    ]);
+
+  const porEstado: Record<string, number> = {};
+  for (const g of periodsByEstado) porEstado[g.estado] = g._count;
+  const calcsPorEstado: Record<string, number> = {};
+  for (const g of calcsByEstado) calcsPorEstado[g.estado] = g._count;
+
+  return {
+    ejercicios: {
+      porEstado,
+      inicial: periodsByTipo.find((g) => g.tipo === "INICIAL")?._count ?? 0,
+      regular: periodsByTipo.find((g) => g.tipo === "REGULAR")?._count ?? 0,
+      total: periodsByEstado.reduce((a, g) => a + g._count, 0),
+    },
+    partidas: {
+      total: itemsTotal,
+      pendientes: itemsPendientes,
+      monetarias: itemsByClasif.find((g) => g.clasificacionMonetaria === "MONETARIA")?._count ?? 0,
+      noMonetarias: itemsByClasif.find((g) => g.clasificacionMonetaria === "NO_MONETARIA")?._count ?? 0,
+      valorHistorico: Number(itemsSums._sum.valorHistorico ?? 0),
+      ajusteAcumulado: Number(itemsSums._sum.ajusteAcumulado ?? 0),
+    },
+    calculos: {
+      porEstado: calcsPorEstado,
+      aprobados: calcsAprobadosAgg._count,
+      efectoPatrimonioAprobado: Number(calcsAprobadosAgg._sum.efectoNetoPatrimonio ?? 0),
+    },
+  };
+}
+
 export async function getCompanyForUser(id: string, scope: CompanyScope) {
   const company = await prisma.company.findUnique({
     where: { id },

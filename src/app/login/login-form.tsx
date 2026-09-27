@@ -2,6 +2,7 @@
 import { useActionState } from "react";
 import { Input, Label, FieldError } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { usePendingTask } from "@/components/ui/floating-pending";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { loginAction, type ActionState } from "@/actions/auth";
 
@@ -9,6 +10,7 @@ const initial: ActionState = { ok: false };
 
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(loginAction, initial);
+  usePendingTask(pending, "Verificando acceso…");
 
   return (
     <Card className="shadow-sm">

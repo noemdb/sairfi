@@ -1,7 +1,19 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Input, Label, FieldError } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
+import { usePendingTask } from "@/components/ui/floating-pending";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   createFiscalItemAction,
   createFiscalMovementAction,
@@ -23,11 +35,24 @@ function Msg({ state }: { state: ItemActionState }) {
 
 const sel = "mt-1 w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm";
 
-export function CreateItemForm({ periodId, companyId }: { periodId: string; companyId: string }) {
+export function CreateItemForm({ periodId, companyId, onSuccess }: { periodId: string; companyId: string; onSuccess?: () => void }) {
   const [state, formAction, pending] = useActionState(
     (_prev: ItemActionState, fd: FormData) => createFiscalItemAction(periodId, companyId, _prev, fd),
     init,
   );
+  usePendingTask(pending, "Registrando partida…");
+  const lastNotified = useRef<string | null>(null);
+  useEffect(() => {
+    if (state.ok) onSuccess?.();
+    if (state.message && lastNotified.current !== state.message) {
+      lastNotified.current = state.message;
+      if (state.ok) {
+        toast.success("Partida registrada", state.message);
+      } else {
+        toast.error("No se pudo registrar la partida", state.message);
+      }
+    }
+  }, [state, onSuccess]);
   return (
     <form action={formAction} className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
@@ -101,6 +126,15 @@ export function EditItemForm({ id, defaults }: { id: string; defaults: Record<st
     (_prev: ItemActionState, fd: FormData) => updateFiscalItemAction(id, _prev, fd),
     init,
   );
+  usePendingTask(pending, "Guardando cambios…");
+  const lastNotified = useRef<string | null>(null);
+  useEffect(() => {
+    if (state.message && lastNotified.current !== state.message) {
+      lastNotified.current = state.message;
+      if (state.ok) toast.success("Cambios guardados", state.message);
+      else toast.error("No se pudo guardar", state.message);
+    }
+  }, [state]);
   return (
     <form action={formAction} className="space-y-3">
       <div>
@@ -149,6 +183,35 @@ export function EditItemForm({ id, defaults }: { id: string; defaults: Record<st
       <Msg state={state} />
       <Button type="submit" className="w-full" disabled={pending}>{pending ? "Guardando..." : "Guardar (clasificar)"}</Button>
     </form>
+  );
+}
+
+export function CreateItemDialog({ periodId, companyId }: { periodId: string; companyId: string }) {
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="h-7 rounded-full text-xs">
+          <Plus aria-hidden />
+          Nueva partida
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Nueva partida</DialogTitle>
+          <DialogDescription>Sin fecha clara entra pendiente de clasificación (R-005).</DialogDescription>
+        </DialogHeader>
+        <CreateItemForm
+          periodId={periodId}
+          companyId={companyId}
+          onSuccess={() => {
+            setOpen(false);
+            router.refresh();
+          }}
+        />
+      </DialogContent>
+    </Dialog>
   );
 }
 
