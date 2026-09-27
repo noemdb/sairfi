@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/client";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSession, setSessionCookie, destroySession, getRequestMeta, getSessionUser } from "@/lib/auth/session";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 import { auditLog } from "@/lib/auth/audit";
 import { loginSchema } from "@/lib/validation/auth";
 
@@ -17,6 +18,16 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
   const parsed = loginSchema.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, message: "Datos inválidos", errors: parsed.error.flatten().fieldErrors };
+  }
+
+  // SECURITY.md: 5 intentos / 10 min por IP+email. Mensaje explícito (no
+  // enumera usuarios: salta exista o no la cuenta). Sin fila de auditoría:
+  // AuditLog.userId es FK obligatoria y el atacante puede no existir.
+  const meta0 = await getRequestMeta();
+  const rl = checkRateLimit("login", `${meta0.ip ?? "sin-ip"}:${parsed.data.email}`);
+  if (!rl.allowed) {
+    console.warn(`[ratelimit] login excedido para ${parsed.data.email}`);
+    return { ok: false, message: "Demasiados intentos. Intente de nuevo en unos minutos." };
   }
 
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });

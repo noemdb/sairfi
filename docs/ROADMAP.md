@@ -155,11 +155,11 @@ Esta es la fase de mayor riesgo del proyecto: es el motivo de ser del sistema y 
 
 ## Fase 6 — Reportes y exportación
 
-**Estado:** 🔲 Por hacer · **Depende de:** Fase 5 (necesita resultados de cálculo reales que reportar) · **Tamaño:** M
+**Estado:** ✅ Hecho · **Depende de:** Fase 5 · **Tamaño:** M
 
 **Bloques:**
-1. Balance fiscal + hoja de trabajo + consolidados, en XLSX/PDF/CSV con metadatos (fecha, usuario, versión).
-2. Exportación auditada — cada descarga genera `audit_logs` y respeta propiedad/rol, siguiendo el mismo patrón que ya existe en `GET /api/export/[id]` del MVP.
+1. ~~Balance fiscal + hoja de trabajo + consolidados, en XLSX/PDF/CSV con metadatos (fecha, usuario, versión).~~ — hecho 2026-09-26 (ruta única `/exports/[id]/[report]/[format]` en vez de 9 rutas; suite 106/106).
+2. ~~Exportación auditada — cada descarga genera `audit_logs` y respeta propiedad/rol, siguiendo el mismo patrón que ya existe en `GET /api/export/[id]` del MVP.~~ — hecho 2026-09-26.
 
 **Criterio de salida:** un reporte exportado puede rastrearse hasta el cálculo, versión de reglas y versión de índices exactos que lo generaron (principio de trazabilidad, `DOMAIN.md` §2.3).
 
@@ -167,11 +167,11 @@ Esta es la fase de mayor riesgo del proyecto: es el motivo de ser del sistema y 
 
 ## Fase 7 — Endurecimiento previo al release
 
-**Estado:** 🔲 Por hacer, pero **no bloquea** Fases 1-6 (ver B-03 en `TODO.md`) · **Depende de:** puede empezarse en paralelo desde Fase 1, debe cerrarse antes del release · **Tamaño:** M
+**Estado:** ✅ Hecho · **Depende de:** puede empezarse en paralelo desde Fase 1, debe cerrarse antes del release · **Tamaño:** M
 
 **Bloques:**
-1. Rate limiting + headers de seguridad (CSP/HSTS) + verificación de `Origin`/CSRF en mutaciones — implementa la tabla de límites ya definida en `SECURITY.md` §Rate limiting.
-2. Auditoría e2e (Playwright: login → cálculo → aprobación → exporte) + prueba de restauración de Neon documentada.
+1. ~~Rate limiting + headers de seguridad (CSP/HSTS) + verificación de `Origin`/CSRF en mutaciones — implementa la tabla de límites ya definida en `SECURITY.md` §Rate limiting.~~ — hecho 2026-09-26 (librería propia + ADR-012; KV distribuido en backlog).
+2. ~~Auditoría e2e (Playwright: login → cálculo → aprobación → exporte) + prueba de restauración de Neon documentada.~~ — hecho 2026-09-26 (humo e2e verde con login real; drill de restauración 20/20 en scratch eliminada).
 
 **Criterio de salida:** B-03 se cierra en `TODO.md`; ningún endpoint de mutación acepta una petición sin `Origin` válido; existe al menos una restauración de backup probada y documentada.
 

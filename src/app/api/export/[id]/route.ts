@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 import { prisma } from "@/lib/db/client";
 import { auditLog } from "@/lib/auth/audit";
 
@@ -54,6 +55,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  const rl = checkRateLimit('download', user.id);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Límite de descargas excedido" }, { status: 429 });
+  }
 
   const submission = await prisma.formSubmission.findUnique({
     where: { id },

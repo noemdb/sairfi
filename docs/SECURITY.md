@@ -66,35 +66,33 @@ Regla transversal: toda Server Action y Route Handler llama a `getSessionUser()`
 
 ## Rate limiting
 
-No hay rate limiting implementado (verificado en `src/`: sin middleware de límites, sin dependencia de KV/Upstash). Se documenta como deuda del Paso 05 con el plan mínimo:
+Implementado 2026-09-26 (`src/lib/security/rate-limit.ts`, suite en verde). Desviaciones honestas del plan: `loginAction` devuelve mensaje (las Actions no tienen 429) y sin fila de auditoría (FK obligatoria sin usuario conocido; solo `console.warn` servidor); límite global en `src/proxy.ts` (100 req/min/IP). Límite conocido: store en memoria por instancia — en Vercel multinstancia la ruta de mejora es KV distribuido (backlog).
 
 | Endpoint / grupo | Límite | Ventana | Acción al exceder |
 |---|---|---|---|
-| `POST /api/auth/*`, `loginAction` | 5 intentos | 10 min / IP + email | 429 + mensaje genérico, auditar ráfaga |
-| `POST /api/uploads` | 20 subidas | 10 min / usuario | 429, reintentar con backoff |
-| `GET /api/export/[id]`, `GET /api/files/[id]` | 30 descargas | 10 min / usuario | 429 |
+| `loginAction` | 5 intentos | 10 min / IP + email | mensaje genérico + warn servidor |
+| `POST /api/uploads` | 20 subidas | 10 min / usuario | 429 + `Retry-After` |
+| `GET /api/export/[id]`, `GET /api/files/[id]`, `GET /api/v1/exports/*` | 30 descargas | 10 min / usuario | 429 + `Retry-After` |
 | `/api/*` global (abusos) | 100 req | 1 min / IP | 429 + log |
-
-Implementación prevista: capa en `src/proxy.ts` o Vercel/KV antes del siguiente release que toque datos sensibles; registrar la activación en `DECISIONS.md` como ADR nuevo.
 
 ## Otros controles
 
 - [x] HTTPS forzado en producción (Vercel lo provee por defecto; cookies `Secure` en producción; Neon exige `sslmode=require` en ambas URLs)
-- [ ] Headers de seguridad configurados (CSP, HSTS, etc.) — **pendiente**: `next.config.ts` no define `headers()`. Mínimo a agregar: `HSTS`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, CSP restrictiva acorde a Next/Tailwind.
-- [x] CORS configurado explícitamente (no `*` en producción) — aplica por omisión: no hay `Access-Control-Allow-Origin: *`; las APIs son mismo-origen con cookie (`sameSite: lax`) y chequeo de sesión. Si se abre `/api/v1` a sistemas contables (v2), exigirá allowlist de orígenes + tokens API con alcance (ver `ARCHITECTURE.md` §8).
+- [x] Headers de seguridad configurados — `headers()` en `next.config.ts` (HSTS solo prod; CSP sin `unsafe-eval`; `frame-ancestors 'none'`), verificado por test y e2e.
+- [x] CORS configurado explícitamente (no `*` en producción) — aplica por omisión: no hay `Access-Control-Allow-Origin: *`; las APIs son mismo-origen con cookie (`sameSite: lax`) y chequeo de sesión. Mutaciones `/api/*` exigen además `Origin` válido o ausente (`src/lib/security/origin.ts`, verificado con tests); Server Actions cubiertas por el CSRF del framework. Si se abre `/api/v1` a sistemas contables (v2), exigirá allowlist de orígenes + tokens API con alcance (ver `ARCHITECTURE.md` §8).
 - [x] Logs no exponen datos sensibles — `audit.ts` solo persiste `metadata` curada (p. ej. `{ email, role }`, `{ category, originalName, sizeBytes }`) más `ipAddress`/`userAgent`; los catch hacen `console.error("[audit] failed", e)` sin volcar tokens ni hashes. Los errores al usuario son genéricos.
-- [x] Backups de base de datos configurados y probados — respaldo automático de Neon (retención 30 días, ver `ARCHITECTURE.md` §9.4) + transacciones Prisma + `audit_logs` inmutables y retención tributaria de 10 años (`DATABASE.md` §6). **Pendiente:** prueba trimestral de restauración documentada.
+- [x] Backups de base de datos configurados y probados — respaldo automático de Neon (retención 30 días, ver `ARCHITECTURE.md` §9.4) + transacciones Prisma + `audit_logs` inmutables y retención tributaria de 10 años (`DATABASE.md` §6). **Drill 2026-09-26: restauración completa probada** — DB scratch `sairfi_restore_test` reconstruida solo con `prisma/migrations/*`, datos copiados tabla por tabla con `psql \copy`, conteos 20/20 idénticos, DB eliminada. Límite del entorno: `pg_dump` 16 no vuelca PG 18 (se usó `psql` + migraciones); runbook: ante pérdida, `CREATE DATABASE` + aplicar migraciones en orden + `COPY` desde el último volcado + verificar conteos, o PITR de Neon a una rama nueva.
 
 ## Amenazas conocidas y mitigación
 
 | Amenaza | Probabilidad | Mitigación aplicada |
 |---|---|---|
-| Fuerza bruta / credential stuffing en login | Alta | bcrypt cost 12, mensajes genéricos, `lastLoginAt` + auditoría `LOGIN`; **falta** rate limiting y bloqueo temporal (ver plan arriba) |
-| Robo de sesión (XSS / red) | Media | Cookie `httpOnly` + `Secure` en prod + `sameSite: lax`, solo hash en DB, expiración y revocación por logout/desactivación; **falta** CSP/HSTS que endurezcan XSS/MITM |
-| CSRF en Server Actions / `POST /api/*` | Media | `sameSite: lax` mitiga el caso general; **falta** token CSRF / verificación de `Origin` en mutaciones (deuda) |
+| Fuerza bruta / credential stuffing en login | Alta | bcrypt cost 12, mensajes genéricos, `lastLoginAt` + auditoría `LOGIN`; rate limiting 5/10min por IP+email activo |
+| Robo de sesión (XSS / red) | Media | Cookie `httpOnly` + `Secure` en prod + `sameSite: lax`, solo hash en DB, expiración y revocación; CSP + HSTS activos |
+| CSRF en Server Actions / `POST /api/*` | Media | `sameSite: lax` + verificación de `Origin` en mutaciones `/api/*` (testeada) + CSRF del framework en Actions |
 | IDOR: leer/editar submissions o adjuntos ajenos | Media | Chequeos de propiedad en cada acción, ruta y página (`submission.userId !== user.id` → 403/`notFound()`); ADMIN exceptuado explícitamente |
 | Subida maliciosa (ejecutables, zip-bombs, MIME spoofing) | Media | Allowlist + 20 MB + nombre saneado + Blob privado; **falta** verificación mágica de firma/MIME estricta y escaneo antivirus antes de servir |
 | Exposición de PII / datos tributarios en logs o exportaciones | Media | `audit_logs` con metadatos mínimos, sin contraseñas/tokens; exportaciones exigen sesión y propiedad; **falta** revisión de `metadata` libre (`Json`) para que nunca guarde PII sensible |
-| Abuso de exportaciones/descargas (scraping, DoS) | Media | Requieren sesión; **falta** rate limiting por usuario/IP |
+| Abuso de exportaciones/descargas (scraping, DoS) | Media | Requieren sesión + rate limiting 30/10min por usuario y global 100/min por IP |
 | `.env` o backups filtrados al repo | Baja | `.gitignore` ignora `.env*` salvo `.env.example`; `DATABASE_URL` con `sslmode=require`; secretos prod solo en Vercel |
 | Pérdida de datos / corrupción fiscal | Baja | Transacciones Prisma, `audit_logs` append-only, respaldo Neon, borrado lógico (`active=false`) en lugar de borrado físico |

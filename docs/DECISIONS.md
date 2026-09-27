@@ -265,4 +265,25 @@ Se gana un corte limpio y reversible con una sola bitácora y un solo sistema de
 
 ---
 
+## ADR-012 — Endurecimiento con medios propios: rate limiting en memoria, headers y Origin
+**Fecha:** 2026-09-26
+**Estado:** Aceptada
+
+### Contexto
+B-03 bloqueaba el release (sin rate limiting, headers ni CSRF) y `SECURITY.md` pedía registrar la activación como ADR. Había que elegir entre infraestructura externa (Vercel KV/Upstash, WAF) e implementación propia antes del release.
+
+### Alternativas consideradas
+| Opción | Pros | Contras |
+|---|---|---|
+| Elegida: librería propia en memoria + headers en `next.config.ts` + chequeo `Origin` en `proxy.ts` | Cero dependencias y costo, testeable en CI, suficiente para el volumen v1 | El store no se comparte entre instancias (presupuesto multiplicable por réplica); HSTS/CSP requieren revisión al agregar dominios/CDN |
+| Vercel KV/Upstash + WAF gestionado | Límites distribuidos reales, menos código propio | Costo, latencia extra por request, otra superficie de secretos antes del primer release |
+
+### Decisión
+Se implementa la tabla exacta de `SECURITY.md` con `src/lib/security/rate-limit.ts` (ventana deslizante, 429 + `Retry-After`), headers en `next.config.ts` y `src/lib/security/origin.ts` aplicado a mutaciones `/api/*` en el proxy (sin `Origin` se permite para no romper curl/tests; Server Actions quedan cubiertas por el CSRF del framework).
+
+### Consecuencias
+Se cierra B-03 sin dependencias nuevas salvo `pdfkit` (Fase 6); queda en backlog el paso a store distribuido si el multi-instancia lo exige, y re-auditar CSP al abrir `/api/v1` a terceros en v2.
+
+---
+
 *(agregar una entrada nueva por cada ADR, numerada consecutivamente)*

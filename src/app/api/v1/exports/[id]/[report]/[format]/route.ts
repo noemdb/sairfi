@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, getRequestMeta } from "@/lib/auth/session";
 import { hasPermission } from "@/lib/auth/permissions";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 import { auditLog } from "@/lib/auth/audit";
 import { buildReportData, ReportConflictError } from "@/lib/domain/reports";
 import { balanceCSV, balancePDF, balanceXLSX } from "@/lib/reports/balance";
@@ -32,6 +33,13 @@ export async function GET(req: NextRequest, { params }: Ctx) {
     return NextResponse.json({ error: { code: "UNAUTHENTICATED", message: "No autenticado" } }, { status: 401 });
   if (!hasPermission(user.roles, "calculations", "read"))
     return NextResponse.json({ error: { code: "FORBIDDEN", message: "No autorizado" } }, { status: 403 });
+  const rl = checkRateLimit('download', user.id);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: { code: "RATE_LIMITED", message: "Límite de descargas excedido. Reintente en unos minutos." } },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)) } },
+    );
+  }
   if (!REPORTS.includes(report as Report) || !FORMATS.includes(format as Format)) {
     return NextResponse.json({ error: { code: "NOT_FOUND", message: "Reporte o formato inexistente" } }, { status: 404 });
   }

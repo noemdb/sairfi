@@ -33,10 +33,10 @@ sairfi/
 │   │   ├── dashboard/
 │   │   ├── submissions/
 │   │   │   └── [id]/
-│   │   ├── admin/
-│   │   │   ├── users/
-│   │   │   ├── submissions/
-│   │   │   └── audit/
+  │   │   ├── admin/
+  │   │   │   ├── users/
+  │   │   │   ├── levantamiento/   # gestión de levantamientos (antes submissions/; esa ruta hoy solo redirige)
+  │   │   │   └── audit/
 │   │   └── api/
 │   │       ├── auth/
 │   │       │   ├── login/           # H-M1: carpeta vacía, resolver (TODO backlog)

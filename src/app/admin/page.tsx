@@ -28,7 +28,7 @@ export default async function AdminPage() {
             <p className="text-sm text-slate-500 mt-1">Crear y desactivar cuentas. Roles ADMIN / RESPONDENT.</p>
             <span className="mt-3 inline-flex text-sm font-medium text-sky-700">Gestionar →</span>
           </Link>
-          <Link href="/admin/submissions" className="rounded-2xl border border-slate-200 bg-white p-6 hover:shadow-sm">
+          <Link href="/admin/levantamiento" className="rounded-2xl border border-slate-200 bg-white p-6 hover:shadow-sm">
             <h2 className="font-semibold text-slate-900">Levantamientos</h2>
             <p className="text-sm text-slate-500 mt-1">Consultar respuestas, reabrir secciones y exportar.</p>
             <span className="mt-3 inline-flex text-sm font-medium text-sky-700">Ver levantamientos →</span>

@@ -151,23 +151,32 @@ describe.skipIf(!DB)('exportaciones contra DB (Fase 6)', { timeout: 120000 }, ()
     expect(audit).not.toBeNull();
   });
 
-  it('CSV y PDF de los tres reportes', async () => {
+  it('CSV y PDF de los tres reportes (+ XLSX por relectura)', async () => {
     useToken(analystToken);
-    for (const [report, format, marker, mime] of [
-      ['balance', 'csv', 'Maquinaria', 'text/csv'],
-      ['balance', 'pdf', '%PDF-', 'application/pdf'],
-      ['worksheet', 'xlsx', 'Índice base', 'spreadsheetml'],
-      ['worksheet', 'csv', 'Índice base', 'text/csv'],
-      ['consolidado', 'xlsx', 'ACTIVO', 'spreadsheetml'],
-      ['consolidado', 'csv', 'ACTIVO', 'text/csv'],
-      ['consolidado', 'pdf', '%PDF-', 'application/pdf'],
+    for (const [report, format, marker, mime, viaLib] of [
+      ['balance', 'csv', 'Maquinaria', 'text/csv', false],
+      ['balance', 'pdf', '%PDF-', 'application/pdf', false],
+      ['worksheet', 'xlsx', 'Índice base', 'spreadsheetml', true],
+      ['worksheet', 'csv', 'Índice base', 'text/csv', false],
+      ['consolidado', 'xlsx', 'ACTIVO', 'spreadsheetml', true],
+      ['consolidado', 'csv', 'ACTIVO', 'text/csv', false],
+      ['consolidado', 'pdf', '%PDF-', 'application/pdf', false],
     ] as const) {
       const res = await exportReport(req(`/api/v1/exports/${calcId}/${report}/${format}`), {
         params: Promise.resolve({ id: calcId, report, format }),
       });
       expect(res.status).toBe(200);
       expect(res.headers.get('content-type') || '').toContain(mime);
-      const text = Buffer.from(await res.arrayBuffer()).toString('latin1');
+      const buf = Buffer.from(await res.arrayBuffer());
+      let text: string;
+      if (viaLib) {
+        const wb = XLSX.read(buf, { type: 'buffer' });
+        text = XLSX.utils.sheet_to_json<string[]>(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' })
+          .map((r) => r.join(' '))
+          .join('\n');
+      } else {
+        text = buf.toString('utf-8');
+      }
       expect(text).toContain(marker);
     }
   });

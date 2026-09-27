@@ -146,12 +146,12 @@
 
 ## Reportes y archivos
 
-### `GET /api/v1/exports/balance/[calculationId].xlsx` (y `.pdf`, `.csv`)
-- **Descripción:** Balance General Fiscal Actualizado + hoja de trabajo + consolidados, con metadatos (fecha, usuario, versión de reglas/índices).
-- **Auth requerida:** Sí — todos los roles con acceso a la empresa.
-- **Errores posibles:** | 404 | cálculo inexistente o ajeno | | 409 | cálculo no aprobado (solo se exporta lo aprobado) |
-- **Efectos secundarios:** descarga auditada (`FILE_DOWNLOADED`).
-- **Criterios de aceptación:** - [ ] Exportar borrador → `409`, no archivo parcial - [ ] El XLSX reimportado cuadra al centavo con `calculation_results`
+### `GET /api/v1/exports/[id]/[report]/[format]` (`report` = balance|worksheet|consolidado, `format` = xlsx|pdf|csv)
+- **Descripción:** Balance General Fiscal Actualizado + hoja de trabajo + consolidados, con metadatos (fecha, usuario, versión de reglas/índices). Ruta única parametrizada en vez de 9 rutas fijas (decisión de diseño Fase 6; el contrato `/exports/balance/[id].xlsx` original se confirma-corrije aquí).
+- **Auth requerida:** Sí — `calculations:read` (todos los roles con acceso a la empresa).
+- **Errores posibles:** | 404 | cálculo inexistente/ajeno, reporte o formato inexistente | | 409 | cálculo no aprobado (solo se exporta lo aprobado) |
+- **Efectos secundarios:** descarga auditada (`FILE_DOWNLOADED` con `{report, format}`).
+- **Criterios de aceptación:** - [x] Exportar borrador → `409`, no archivo parcial - [x] El XLSX reimportado cuadra al centavo con `calculation_results` (verificado por relectura en tests)
 
 ### `GET /api/v1/files/[id]` · `POST /api/v1/uploads`
 - **Descripción:** descarga y subida de soportes (Blob privado, 20 MB, allowlist `xls/xlsx/csv/pdf/docx`, nombre saneado).
@@ -184,7 +184,7 @@ Levantamiento de requerimientos en 5 secciones con adjuntos. Roles vigentes: `AD
 - **Descripción:** variantes de creación (redirect vs retorno de `id` para Client Components con `useTransition`), navegación y borrado (`src/actions/submissions.ts`).
 - **Auth requerida:** Sí — crear/navegar: cualquier rol; borrar: dueño o `ADMIN` (`submission.userId !== user.id` → error).
 - **Errores posibles:** `No autenticado` / `Levantamiento no encontrado` / `No autorizado` (excepciones, no códigos HTTP por ser Actions).
-- **Efectos secundarios:** borrado elimina blobs asociados (best-effort), `revalidatePath("/dashboard")` y `/admin/submissions`. Auditoría con acción propia `SUBMISSION_DELETED` (D-M3 resuelta 2026-09-26; migración `20260926000002_submission_deleted`).
+- **Efectos secundarios:** borrado elimina blobs asociados (best-effort), `revalidatePath("/dashboard")` y `/admin/levantamiento` (antes `/admin/submissions`; esa ruta hoy solo redirige). Auditoría con acción propia `SUBMISSION_DELETED` (D-M3 resuelta 2026-09-26; migración `20260926000002_submission_deleted`).
 - **Criterios de aceptación:** - [x] BorrarSubmission ajeno como `RESPONDENT` es rechazado - [ ] Borrar sin token Blob no deja Blobs huérfanos en producción
 
 ### Server Actions `saveDraftAction` / `submitSectionAction` (`src/actions/sections.ts`, dominio `src/lib/domain/sections.ts`)

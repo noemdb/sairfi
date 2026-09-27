@@ -72,14 +72,14 @@
 ### Fase 6 — Reportes y exportación
 | Bloque | Estado | Criterios de aceptación | Notas |
 |---|---|---|---|
-| Balance fiscal + hoja de trabajo + consolidados | 🔲 | XLSX/PDF/CSV con metadatos (fecha, usuario, versión); filtros empresa/período/estado | `ARCHITECTURE.md` §4.7; libs compatibles con Edge |
-| Exportación auditada | 🔲 | Cada descarga genera `audit_logs`; respeta propiedad/rol | `SECURITY.md` (exportes) |
+| Balance fiscal + hoja de trabajo + consolidados | ✅ | XLSX/PDF/CSV con metadatos (fecha, usuario, versión); filtros empresa/período/estado | Checklist Paso 04 completo 2026-09-26: 3 reportes × 3 formatos (XLSX vía `xlsx`, CSV manual, PDF vía `pdfkit`, runtime Node); XLSX verificado por relectura; solo APROBADO exporta; UI con enlaces por cálculo; suite 106/106 |
+| Exportación auditada | ✅ | Cada descarga genera `audit_logs`; respeta propiedad/rol | Checklist completo 2026-09-26: `FILE_DOWNLOADED` con `{report, format}` verificado en DB; propiedad vía período/empresa |
 
 ### Fase 7 — Endurecimiento previo al release
 | Bloque | Estado | Criterios de aceptación | Notas |
 |---|---|---|---|
-| Rate limiting + headers + CSRF | 🔲 | Límites de `SECURITY.md` activos; CSP/HSTS; verificación `Origin` en mutaciones | Deudas `SECURITY.md`; registrar activación como ADR |
-| Auditoría e2e + prueba de restauración | 🔲 | Playwright cubre login→cálculo→aprobación→exporte; restauración Neon probada y documentada | Cierra el ciclo 05/06 por release |
+| Rate limiting + headers + CSRF | ✅ | Límites de `SECURITY.md` activos; CSP/HSTS; verificación `Origin` en mutaciones | Checklist Paso 04 completo 2026-09-26: librería + 8 tests, 429 con `Retry-After`, headers testeados y verificados en e2e, Origin con allowlist; ADR-012; límite conocido: store en memoria (KV en backlog) |
+| Auditoría e2e + prueba de restauración | ✅ | Playwright cubre login→cálculo→aprobación→exporte; restauración Neon probada y documentada | Checklist completo 2026-09-26: e2e humo (landing→login→dashboard + headers) en verde; drill de restauración real (scratch reconstruida de migraciones, 20/20 conteos, eliminada); runbook en `SECURITY.md` |
 
 ## Checklist de validación por bloque (Paso 04)
 Antes de marcar cualquier bloque como ✅ Hecho:
@@ -93,7 +93,7 @@ Antes de marcar cualquier bloque como ✅ Hecho:
 ## Bloqueos activos
 | Bloque | Motivo del bloqueo | Desde | Siguiente acción |
 |---|---|---|---|
-| B-03 · Release a producción | Sin rate limiting, headers ni CSRF (`SECURITY.md`) | 2026-09-26 | Implementar tabla de límites de `SECURITY.md` en Fase 7; no exige bloquear Fases 1–6 |
+| B-03 · Release a producción | ✅ resuelto 2026-09-26 | Rate limiting, headers y CSRF implementados y verificados (Fase 7); restauración probada | Ver ADR-012 y runbook en `SECURITY.md` |
 
 > B-01 resuelto 2026-09-26 (ADR-011: corte único, DB vacía verificada, auditoría unificada). B-02 resuelto 2026-09-26 (`PROJECT.md` § Contexto actualizado al stack vigente).
 

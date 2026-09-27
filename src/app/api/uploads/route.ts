@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 import { prisma } from "@/lib/db/client";
 import { registerAttachment } from "@/lib/domain/attachments";
 import { auditLog } from "@/lib/auth/audit";
@@ -11,6 +12,13 @@ export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user)
     return NextResponse.json({ error: { code: 'UNAUTHENTICATED', message: 'No autenticado' } }, { status: 401 });
+  const rl = checkRateLimit('upload', user.id);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: { code: 'RATE_LIMITED', message: 'Límite de subidas excedido. Reintente en unos minutos.' } },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)) } },
+    );
+  }
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;

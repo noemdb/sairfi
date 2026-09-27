@@ -80,7 +80,7 @@ export async function reopenSectionAction(submissionId: string, sectionNumber: n
     userAgent: meta.userAgent,
   });
   revalidatePath(`/submissions/${submissionId}`);
-  revalidatePath(`/admin/submissions/${submissionId}`);
+  revalidatePath(`/admin/levantamiento/${submissionId}`);
   return { ok: true };
 }
 

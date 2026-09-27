@@ -243,7 +243,7 @@ src/
     submissions/[id]/
     admin/
       users/
-      submissions/
+      levantamiento/   # gestión de levantamientos (antes submissions/; esa ruta hoy solo redirige)
       audit/
     api/
       auth/login/ · auth/logout/   # H-M1: carpetas vacías, resolver (backlog TODO.md)

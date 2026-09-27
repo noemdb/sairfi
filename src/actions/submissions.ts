@@ -84,6 +84,6 @@ export async function deleteSubmissionAction(submissionId: string): Promise<{ ok
   }).catch(() => {});
 
   revalidatePath("/dashboard");
-  revalidatePath("/admin/submissions");
+  revalidatePath("/admin/levantamiento");
   return { ok: true };
 }

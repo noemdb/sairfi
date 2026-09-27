@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { checkRateLimit } from "@/lib/security/rate-limit";
+import { isAllowedOrigin } from "@/lib/security/origin";
 
 const PUBLIC_PATHS = ["/", "/login"];
 function getSessionCookieName() {
@@ -21,6 +23,39 @@ function isPublic(pathname: string) {
 
 export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // SECURITY.md: /api/* global anti-abuso, 100 req/min por IP. Corre antes
+  // que el control de sesión para frenar ráfagas anónimas también.
+  if (pathname.startsWith("/api/")) {
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "sin-ip";
+    const rl = checkRateLimit("api", ip);
+    if (!rl.allowed) {
+      console.warn(`[ratelimit] /api/* excedido desde ${ip}`);
+      return NextResponse.json(
+        { error: { code: "RATE_LIMITED", message: "Límite excedido. Reintente en unos segundos." } },
+        { status: 429, headers: { "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)) } },
+      );
+    }
+  }
+
+  // SECURITY.md § CSRF: las mutaciones /api/* exigen Origin válido o ausente.
+  // Sin Origin (curl, tests, apps no-browser) se permite; con Origin de otro
+  // sitio se rechaza antes de tocar handlers o sesión.
+  if (pathname.startsWith("/api/") && request.method !== "GET" && request.method !== "HEAD" && request.method !== "OPTIONS") {
+    // Se acepta el origen propio del request además del APP_URL configurado:
+    // en producción sin APP_URL explícita nada legítimo debe romperse.
+    if (!isAllowedOrigin(request.headers.get("origin"), [request.nextUrl.origin])) {
+      console.warn(`[csrf] origen rechazado en ${pathname}`);
+      return NextResponse.json(
+        { error: { code: "FORBIDDEN", message: "Origen no permitido" } },
+        { status: 403 },
+      );
+    }
+  }
+
   const hasSession = request.cookies.has(SESSION_COOKIE) || request.cookies.has(SESSION_COOKIE_ALT);
 
   // Rutas protegidas sin sesión → redirect a login (control optimista)
