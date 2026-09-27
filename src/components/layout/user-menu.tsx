@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, LayoutDashboard, LogOut, Settings } from "lucide-react";
+import { BookOpenText, ChevronDown, LayoutDashboard, LogOut, Settings } from "lucide-react";
 
 type UserMenuProps = {
   name: string;
@@ -57,6 +57,12 @@ export function UserMenu({ name, role, initials, showAdmin }: UserMenuProps) {
             </Link>
           </DropdownMenuItem>
         )}
+        <DropdownMenuItem asChild className="cursor-pointer">
+          <Link href="/docs" role="menuitem">
+            <BookOpenText aria-hidden />
+            Flujos y casos de uso
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <form action={logoutAction} className="p-0">
           <DropdownMenuItem asChild variant="destructive">

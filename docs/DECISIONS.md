@@ -286,4 +286,26 @@ Se cierra B-03 sin dependencias nuevas salvo `pdfkit` (Fase 6); queda en backlog
 
 ---
 
+## ADR-013 — Backend de archivos: UploadThing como principal, Vercel Blob como alternativa
+**Fecha:** 2026-09-27
+**Estado:** Aceptada
+
+### Contexto
+No hay certeza de poder usar Vercel Blob en el entorno de despliegue del proyecto. Se necesita un backend de archivos disponible con certeza para adjuntos del levantamiento y originales de importación (`ARCHITECTURE.md` §6.2). El proyecto ya tenía `UPLOADTHING_TOKEN`/`UPLOADTHING_API` en `.env` sin cablear.
+
+### Alternativas consideradas
+| Opción | Pros | Contras |
+|---|---|---|
+| Elegida: UploadThing (vía `UTApi`) como principal, Vercel Blob como alternativa, local como fallback | Disponible con certeza, SDK oficial sin infraestructura propia, un solo punto de cambio (`src/lib/storage/blob.ts`) | URLs servidas con ACL pública de UploadThing (enlaces no adivinables; el control de acceso real sigue en `GET /api/files/[id]`) |
+| Solo Vercel Blob | Ya integrado, `access: "private"` nativo | Disponibilidad incierta en el despliegue previsto (bloqueó la importación con `Access denied`) |
+| Solo local | Cero dependencias | Sin persistencia entre instancias, inaceptable en producción |
+
+### Decisión
+Prioridad en `src/lib/storage/blob.ts`: `UPLOADTHING_TOKEN` → UploadThing (`src/lib/storage/uploadthing.ts`); si no, `BLOB_READ_WRITE_TOKEN` → Vercel Blob; si ninguno, fallback local (solo desarrollo/tests). `POST /api/uploads` usa la capa unificada en vez de `put()` directo.
+
+### Consecuencias
+Se gana disponibilidad del almacenamiento sin reescribir llamadas (misma firma `{ url, pathname }`); se asume URL pública no adivinable por ahora (decisión 2026-09-27: se mantiene pública durante desarrollo con datos de prueba) y la autorización vive en el proxy `GET /api/files/[id]`, nunca en la URL. Al operar con datos reales, migrar a ACL privada + URLs firmadas de corta duración.
+
+---
+
 *(agregar una entrada nueva por cada ADR, numerada consecutivamente)*

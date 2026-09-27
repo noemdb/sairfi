@@ -107,8 +107,9 @@ describe.skipIf(!DB)('importación contra DB (Fase 4)', { timeout: 120000 }, () 
   const userIds: string[] = [];
 
   beforeAll(async () => {
-    // Sin Blob real en tests: el fallback local evita red y persistencia externa.
+    // Sin almacenamiento real en tests: el fallback local evita red y persistencia externa.
     delete process.env.BLOB_READ_WRITE_TOKEN;
+    delete process.env.UPLOADTHING_TOKEN;
     const hash = await hashPassword('Clave1234');
     const mk = (email: string, roleId: string | null) =>
       prisma.user.create({

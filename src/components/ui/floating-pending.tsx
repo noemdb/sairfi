@@ -76,6 +76,33 @@ export function usePendingTask(active: boolean, label: string) {
 }
 
 /**
+ * Píldora de carga presentacional (sin store): la misma que usa el
+ * flotante global. Reutilizable en `loading.tsx` (server).
+ */
+export function PendingPill({ label }: { label: string }) {
+  return (
+    <div
+      role="status"
+      className={cn(
+        "pointer-events-none flex items-center gap-2.5 rounded-full",
+        "bg-[#0f2b46] py-2.5 pr-5 pl-3.5 text-sm font-medium text-white",
+        "shadow-xl shadow-slate-900/25 ring-1 ring-white/15",
+        "animate-[floatIn_0.22s_ease-out]"
+      )}
+    >
+      <Spinner className="size-4 text-sky-300" />
+      <span className="line-clamp-1">{label}</span>
+      <style jsx>{`
+        @keyframes floatIn {
+          from { opacity: 0; transform: translateY(8px) scale(0.97); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/**
  * Botón flotante inferior-derecho: píldora con spinner por cada tarea
  * en curso. Montado una vez en el layout raíz.
  */
@@ -89,25 +116,7 @@ export function FloatingPending() {
       className="fixed right-4 bottom-4 z-[60] flex w-auto max-w-[calc(100vw-2rem)] flex-col items-end gap-2"
     >
       {pending.map((t) => (
-        <div
-          key={t.id}
-          role="status"
-          className={cn(
-            "pointer-events-none flex items-center gap-2.5 rounded-full",
-            "bg-[#0f2b46] py-2.5 pr-5 pl-3.5 text-sm font-medium text-white",
-            "shadow-xl shadow-slate-900/25 ring-1 ring-white/15",
-            "animate-[floatIn_0.22s_ease-out]"
-          )}
-        >
-          <Spinner className="size-4 text-sky-300" />
-          <span className="line-clamp-1">{t.label}</span>
-          <style jsx>{`
-            @keyframes floatIn {
-              from { opacity: 0; transform: translateY(8px) scale(0.97); }
-              to { opacity: 1; transform: translateY(0) scale(1); }
-            }
-          `}</style>
-        </div>
+        <PendingPill key={t.id} label={t.label} />
       ))}
     </div>
   );

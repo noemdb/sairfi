@@ -98,4 +98,17 @@
   }
 }
 
+/* Selección legible en inputs: sin capa para ganar al selector
+   descendente de `selection:bg-sky-100` del body (más específico).
+   Fondo sky marca + texto blanco, verificado en navegador. */
+::selection {
+  background-color: #0ea5e9;
+  color: #ffffff;
+}
+input::selection,
+textarea::selection {
+  background-color: #0ea5e9;
+  color: #ffffff;
+}
+
 /* Light mode only - nunca dark */

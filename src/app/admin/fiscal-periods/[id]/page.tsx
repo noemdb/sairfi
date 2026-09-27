@@ -234,8 +234,8 @@ export default async function AdminFiscalPeriodPage({ params }: { params: Promis
                 <ExecuteCalcButton
                   periodId={period.id}
                   disabledReason={
-                    period.estado !== "ABIERTO"
-                      ? `Solo un ejercicio ABIERTO puede calcularse (está ${period.estado})`
+                    period.estado !== "ABIERTO" && period.estado !== "REABIERTO"
+                      ? `Solo un ejercicio ABIERTO o REABIERTO puede calcularse (está ${period.estado})`
                       : !readiness.ok
                         ? "Bloqueado por R-403/R-404 (ver panel superior)"
                         : undefined

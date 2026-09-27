@@ -1,7 +1,7 @@
 "use client";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import { Input, Label, FieldError } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
@@ -121,7 +121,7 @@ export function CreateItemForm({ periodId, companyId, onSuccess }: { periodId: s
   );
 }
 
-export function EditItemForm({ id, defaults }: { id: string; defaults: Record<string, string> }) {
+export function EditItemForm({ id, defaults, onSuccess }: { id: string; defaults: Record<string, string>; onSuccess?: () => void }) {
   const [state, formAction, pending] = useActionState(
     (_prev: ItemActionState, fd: FormData) => updateFiscalItemAction(id, _prev, fd),
     init,
@@ -129,12 +129,13 @@ export function EditItemForm({ id, defaults }: { id: string; defaults: Record<st
   usePendingTask(pending, "Guardando cambios…");
   const lastNotified = useRef<string | null>(null);
   useEffect(() => {
+    if (state.ok) onSuccess?.();
     if (state.message && lastNotified.current !== state.message) {
       lastNotified.current = state.message;
       if (state.ok) toast.success("Cambios guardados", state.message);
       else toast.error("No se pudo guardar", state.message);
     }
-  }, [state]);
+  }, [state, onSuccess]);
   return (
     <form action={formAction} className="space-y-3">
       <div>
@@ -215,11 +216,21 @@ export function CreateItemDialog({ periodId, companyId }: { periodId: string; co
   );
 }
 
-export function CreateMovementForm({ itemId, periodId }: { itemId: string; periodId: string }) {
+export function CreateMovementForm({ itemId, periodId, onSuccess }: { itemId: string; periodId: string; onSuccess?: () => void }) {
   const [state, formAction, pending] = useActionState(
     (_prev: ItemActionState, fd: FormData) => createFiscalMovementAction(itemId, periodId, _prev, fd),
     init,
   );
+  usePendingTask(pending, "Registrando movimiento…");
+  const lastNotified = useRef<string | null>(null);
+  useEffect(() => {
+    if (state.ok) onSuccess?.();
+    if (state.message && lastNotified.current !== state.message) {
+      lastNotified.current = state.message;
+      if (state.ok) toast.success("Movimiento registrado", state.message);
+      else toast.error("No se pudo registrar el movimiento", state.message);
+    }
+  }, [state, onSuccess]);
   return (
     <form action={formAction} className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
@@ -249,5 +260,62 @@ export function CreateMovementForm({ itemId, periodId }: { itemId: string; perio
       <Msg state={state} />
       <Button type="submit" className="w-full" disabled={pending}>{pending ? "Registrando..." : "Registrar movimiento"}</Button>
     </form>
+  );
+}
+
+export function EditItemDialog({ id, name, defaults }: { id: string; name: string; defaults: Record<string, string> }) {
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="icon" aria-label={`Editar ${name}`}>
+          <Pencil aria-hidden />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Editar {name}</DialogTitle>
+          <DialogDescription>Clasificación, valores y estado de la partida.</DialogDescription>
+        </DialogHeader>
+        <EditItemForm
+          id={id}
+          defaults={defaults}
+          onSuccess={() => {
+            setOpen(false);
+            router.refresh();
+          }}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function CreateMovementDialog({ itemId, periodId }: { itemId: string; periodId: string }) {
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="h-7 rounded-full text-xs">
+          <Plus aria-hidden />
+          Nuevo movimiento
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Nuevo movimiento</DialogTitle>
+          <DialogDescription>Fecha dentro del ejercicio; baja/venta sin exceder el saldo.</DialogDescription>
+        </DialogHeader>
+        <CreateMovementForm
+          itemId={itemId}
+          periodId={periodId}
+          onSuccess={() => {
+            setOpen(false);
+            router.refresh();
+          }}
+        />
+      </DialogContent>
+    </Dialog>
   );
 }

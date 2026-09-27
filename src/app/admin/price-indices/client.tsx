@@ -6,6 +6,7 @@ import { Input, Label, FieldError } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { usePendingTask } from "@/components/ui/floating-pending";
+import { FileDropzone } from "@/components/ui/file-dropzone";
 import {
   Dialog,
   DialogContent,
@@ -210,10 +211,15 @@ export function ImportForm({ companies, onSuccess }: { companies: { id: string; 
         <Label htmlFor="fuente">Fuente por defecto</Label>
         <Input id="fuente" name="fuente" maxLength={100} placeholder="BCV" />
       </div>
-      <div>
-        <Label htmlFor="file">CSV (anio,mes,valor[,fuente])</Label>
-        <input type="file" id="file" name="file" accept=".csv" required className="mt-1 block w-full text-sm" />
-      </div>
+      <FileDropzone
+        id="file"
+        name="file"
+        label="CSV (anio,mes,valor[,fuente])"
+        description="Una fila por mes. Las filas válidas se cargan en borrador."
+        accept=".csv"
+        required
+        maxSizeMB={5}
+      />
       <Msg state={state} />
       <Button type="submit" variant="outline" className="w-full" disabled={pending}>
         <Upload aria-hidden />
@@ -234,7 +240,7 @@ export function ImportIndexDialog({ companies }: { companies: { id: string; nomb
           Importar CSV
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Importar CSV</DialogTitle>
           <DialogDescription>Formato por fila: anio,mes,valor[,fuente]. Cierra solo si el lote sale limpio.</DialogDescription>

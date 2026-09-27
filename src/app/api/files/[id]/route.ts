@@ -33,14 +33,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   // Si es blob local simulado (sin token), devolver mensaje
   if (att.blobUrl.startsWith("local://")) {
     return NextResponse.json(
-      { message: "Archivo registrado en modo desarrollo sin BLOB_READ_WRITE_TOKEN. En producción se serviría el binario privado.", attachment: att },
+      { message: "Archivo registrado en modo desarrollo sin backend de archivos. En producción se serviría el binario.", attachment: att },
       { status: 200 }
     );
   }
 
-  // Con token real, hacer proxy desde Vercel Blob privado
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (token) {
+  // Con backend real (UploadThing o Vercel Blob), hacer proxy del binario.
+  // La autorización ya se verificó arriba: la URL nunca se expone sin acceso.
+  if (att.blobUrl.startsWith("http://") || att.blobUrl.startsWith("https://")) {
     try {
       // Vercel Blob privado no es accesible por URL pública, hay que usar API
       // Intentamos fetch con token header si es posible, o redirigir a blobUrl con autenticación

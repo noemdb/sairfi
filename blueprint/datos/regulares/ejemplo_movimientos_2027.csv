@@ -1,0 +1,6 @@
+cuenta_contable,tipo,fecha,valor,documento,observaciones
+12010001,MEJORA,2027-04-12,50000.00,,Ampliacion linea 2 maquinaria
+12010002,DEPRECIACION,2027-12-01,8000.00,,Depreciacion anual mobiliario
+13010001,VENTA,2027-07-20,30000.00,FV-2027-0142,Venta parcial inventario
+21010001,CANCELACION,2027-10-15,20000.00,CB-2027-031,Abono prestamo indexado
+12010003,MEJORA,2027-02-08,60000.00,,Repontenciacion vehiculo

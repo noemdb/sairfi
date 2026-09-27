@@ -4,6 +4,7 @@ import { checkRateLimit } from "@/lib/security/rate-limit";
 import { prisma } from "@/lib/db/client";
 import { registerAttachment } from "@/lib/domain/attachments";
 import { auditLog } from "@/lib/auth/audit";
+import { uploadToBlob } from "@/lib/storage/blob";
 
 const ALLOWED = new Set(["xls", "xlsx", "csv", "pdf", "docx"]);
 const MAX = 20 * 1024 * 1024;
@@ -45,27 +46,22 @@ export async function POST(req: NextRequest) {
   let blobUrl: string;
   let storedPathname = pathname;
 
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (token) {
-    try {
-      const { put } = await import("@vercel/blob");
-      const arrayBuffer = await file.arrayBuffer();
-      const blob = await put(pathname, arrayBuffer, {
-        access: "private" as never,
-        contentType: file.type || "application/octet-stream",
-        token,
-        addRandomSuffix: false,
-      } as never);
-      blobUrl = (blob as { url: string }).url;
-      storedPathname = (blob as { pathname: string }).pathname || pathname;
-    } catch (e) {
-      console.error("blob upload failed", e);
-      return NextResponse.json({ error: { code: 'STORAGE_ERROR', message: 'Error al almacenar en Blob. Inténtelo nuevamente.' } }, { status: 500 });
+  try {
+    const stored = await uploadToBlob(
+      pathname,
+      Buffer.from(await file.arrayBuffer()),
+      file.type || "application/octet-stream",
+    );
+    if (stored.url.startsWith("/api/files/local/")) {
+      // Fallback local (desarrollo sin backend de archivos): solo metadatos
+      blobUrl = `local://${pathname}`;
+    } else {
+      blobUrl = stored.url;
+      storedPathname = stored.pathname;
     }
-  } else {
-    // Fallback local (desarrollo sin token): simular blobUrl privado servido por /api/files
-    // Guardamos el archivo en memoria? Para MVP sin token, persistimos solo metadatos y usamos blobUrl temporal
-    blobUrl = `local://${pathname}`;
+  } catch (e) {
+    console.error("storage upload failed", e);
+    return NextResponse.json({ error: { code: 'STORAGE_ERROR', message: 'Error al almacenar el archivo. Inténtelo nuevamente.' } }, { status: 500 });
   }
 
   const att = await registerAttachment({

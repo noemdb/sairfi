@@ -1,16 +1,22 @@
 import { put, del } from "@vercel/blob";
+import { deleteFromUploadThing, uploadThingToken, uploadToUploadThing } from "./uploadthing";
 
-// El token se lee en cada llamada (no a nivel de módulo) para que los tests
-// puedan desactivar Blob borrando la variable de entorno (fallback local).
-function token() {
+// Prioridad de backend (ADR-013): UploadThing → Vercel Blob → local.
+// Los tokens se leen en cada llamada (no a nivel de módulo) para que los
+// tests puedan forzar el fallback local borrando las variables de entorno.
+function blobToken() {
   return process.env.BLOB_READ_WRITE_TOKEN || null;
 }
 
 export async function uploadToBlob(pathname: string, body: Buffer | Blob | ArrayBuffer, contentType: string) {
-  const TOKEN = token();
+  if (uploadThingToken()) {
+    const filename = pathname.split("/").pop() || pathname;
+    const { url, key } = await uploadToUploadThing(filename, body, contentType);
+    return { url, pathname: key };
+  }
+  const TOKEN = blobToken();
   if (!TOKEN) {
-    // Fallback sin Blob real: simular url privada local
-    // En producción debe configurarse BLOB_READ_WRITE_TOKEN
+    // Fallback sin almacenamiento real: simular url privada local
     return {
       url: `/api/files/local/${encodeURIComponent(pathname)}`,
       pathname,
@@ -27,7 +33,12 @@ export async function uploadToBlob(pathname: string, body: Buffer | Blob | Array
 }
 
 export async function deleteFromBlob(urlOrPathname: string) {
-  const TOKEN = token();
+  if (urlOrPathname.startsWith("local://") || urlOrPathname.startsWith("/api/files/local/")) return;
+  if (uploadThingToken()) {
+    await deleteFromUploadThing(urlOrPathname);
+    return;
+  }
+  const TOKEN = blobToken();
   if (!TOKEN) return;
   try {
     await del(urlOrPathname, { token: TOKEN });
