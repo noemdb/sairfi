@@ -5,7 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { UserMenu } from "./user-menu";
 
 export async function AppHeader() {
-  const user = await getSessionUser();
+  let user: Awaited<ReturnType<typeof getSessionUser>> = null;
+  try {
+    user = await getSessionUser();
+  } catch {
+    // Si la DB falla en producción, degradar a header sin sesión en vez de
+    // romper toda la página. El control real de acceso vive en cada ruta.
+    user = null;
+  }
   const initials = user?.name
     ? user.name
         .split(" ")
@@ -100,4 +107,34 @@ export async function AppHeader() {
 
 export function PageContainer({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`mx-auto max-w-6xl px-4 sm:px-6 py-8 ${className}`}>{children}</div>;
+}
+
+/**
+ * Cabecera estática para `loading.tsx`: mismo marco visual sin llamada a
+ * sesión/DB. Los fallbacks de Suspense deben renderizar al instante; usar
+ * aquí el `AppHeader` async (con DB) dejaba la píldora "Cargando página…"
+ * visible mientras el propio fallback esperaba a la base de datos.
+ */
+export function AppHeaderSkeleton() {
+  return (
+    <header className="sticky top-0 z-40 w-full border-b border-slate-200/70 bg-white/85 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70">
+      <div className="h-[2.5px] w-full bg-gradient-to-r from-[#0f2b46] via-[#1e4a7a] to-[#0ea5e9]" />
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#0f2b46] shadow-sm ring-1 ring-[#0f2b46]/10">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+              <rect x="2.5" y="10" width="4" height="7" rx="1" fill="white" fillOpacity="0.95" />
+              <rect x="8" y="6.5" width="4" height="10.5" rx="1" fill="white" />
+              <rect x="13.5" y="3.5" width="4" height="13.5" rx="1" fill="white" fillOpacity="0.95" />
+            </svg>
+          </div>
+          <div className="hidden min-w-0 sm:block">
+            <p className="text-[13.5px] leading-none font-bold tracking-tight text-[#0f2b46]">
+              SAIRFI <span className="font-semibold text-slate-900">· Ajuste por Inflación</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
 }

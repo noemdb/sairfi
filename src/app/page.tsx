@@ -6,8 +6,14 @@ export const dynamic = "force-dynamic";
 
 // Página inicial: landing de SAIRFI (opción A, Fase 1.5). Toda la
 // presentación vive en LandingContent (testeable); aquí solo la sesión.
+// Si la DB falla, se degrada a vista sin sesión en vez de colgar el stream.
 export default async function HomePage() {
-  const user = await getSessionUser();
+  let user: Awaited<ReturnType<typeof getSessionUser>> = null;
+  try {
+    user = await getSessionUser();
+  } catch {
+    user = null;
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">

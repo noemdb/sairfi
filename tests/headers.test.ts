@@ -23,9 +23,11 @@ describe('headers de seguridad (Fase 7)', () => {
     const csp = buildCsp(true);
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("style-src 'self' 'unsafe-inline'");
-    expect(csp).toContain("script-src 'self'");
+    // Next App Router exige scripts inline para hidratar; sin nonces,
+    // 'unsafe-inline' es la concesión estándar. 'unsafe-eval' sigue prohibido.
+    expect(csp).toMatch(/script-src[^;]*'self'/);
+    expect(csp).toMatch(/script-src[^;]*'unsafe-inline'/);
     expect(csp).not.toContain('unsafe-eval');
-    expect(csp).not.toMatch(/script-src[^;]*unsafe-inline/);
   });
 
   it('CSP de desarrollo: relaja script-src para el bootstrap inline y HMR de Next', async () => {

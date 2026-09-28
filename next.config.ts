@@ -8,10 +8,13 @@ const isProd = process.env.NODE_ENV === "production";
 // Turbopack/HMR exige además 'unsafe-eval' en desarrollo. Con
 // `script-src 'self'` estricto el navegador los bloquea y la página queda
 // sin hidratar (`Invariant: Expected a request ID ... self.__next_r`).
-// Por eso en no-producción se relaja solo script-src; en producción se
-// mantiene estricto.
+// En producción se observó como píldora "Cargando página…" permanente:
+// el fallback de Suspense (loading.tsx) nunca es reemplazado porque
+// React no hidrata. Sin infraestructura de nonces, 'unsafe-inline' es
+// la concesión estándar y documentada para Next.js; 'unsafe-eval' sigue
+// prohibido en producción.
 export function buildCsp(prod: boolean): string {
-  const scriptSrc = prod ? "script-src 'self'" : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
+  const scriptSrc = prod ? "script-src 'self' 'unsafe-inline'" : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
   return [
     "default-src 'self'",
     scriptSrc,
