@@ -55,7 +55,7 @@ export function LandingContent({ user }: { user: SessionUser | null }) {
             </Badge>
             <h1 className="mt-4 text-[32px] leading-[1.05] font-semibold tracking-tight text-balance text-[#0f2b46] sm:text-[40px] lg:text-[44px]">
               Ajuste por inflación fiscal
-              <span className="block font-normal text-slate-600">sin hojas de cálculo</span>
+              <span className="block font-normal text-slate-600">con precisión auditable</span>
             </h1>
             <p className="mt-4 max-w-2xl text-[16px] leading-7 text-pretty text-slate-600 sm:text-[17px]">
               SAIRFI automatiza el ajuste inicial y los reajustes regulares conforme a la Ley de
@@ -275,6 +275,184 @@ export function LandingContent({ user }: { user: SessionUser | null }) {
               Balance fiscal actualizado, hojas de trabajo y consolidados en Excel, PDF y CSV.
             </CardContent>
           </Card>
+        </div>
+
+        {/* Diagrama de flujo ilustrativo — cierre fiscal */}
+        <div className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/60 px-6 py-4">
+            <p className="flex items-center gap-2 text-sm font-semibold tracking-tight text-[#0f2b46]">
+              <Route className="size-4 text-sky-700" aria-hidden />
+              Flujo del cierre fiscal, de punta a punta
+            </p>
+            <Badge variant="secondary" className="rounded-full">
+              Trazable · Versionado · Auditable
+            </Badge>
+          </div>
+          <div className="px-4 py-5 sm:px-6">
+            <svg
+              viewBox="0 0 980 302"
+              className="h-auto w-full"
+              role="img"
+              aria-label="Diagrama de flujo del cierre fiscal: registra empresa, carga INPC, clasifica partidas, calcula y cierra con bitácora"
+              fontFamily="Inter, ui-sans-serif, system-ui, sans-serif"
+            >
+              <defs>
+                <linearGradient id="sairfi-flow-bg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f8fafc" />
+                  <stop offset="100%" stopColor="#ffffff" />
+                </linearGradient>
+                <linearGradient id="sairfi-flow-line" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#0f2b46" />
+                  <stop offset="100%" stopColor="#0ea5e9" />
+                </linearGradient>
+                <filter id="sairfi-card-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="8" stdDeviation="12" floodColor="#0f2b46" floodOpacity="0.10" />
+                </filter>
+                <marker id="sairfi-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9" />
+                </marker>
+                <pattern id="sairfi-dots" width="22" height="22" patternUnits="userSpaceOnUse">
+                  <circle cx="1.5" cy="1.5" r="1.2" fill="#0f2b46" fillOpacity="0.07" />
+                </pattern>
+              </defs>
+
+              <rect x="0" y="0" width="980" height="302" rx="20" fill="url(#sairfi-flow-bg)" />
+              <rect x="0" y="0" width="980" height="302" rx="20" fill="url(#sairfi-dots)" />
+
+              {/* Conectores */}
+              {[
+                { x1: 224, x2: 254, label: "valida RIF", w: 72, cx: 239 },
+                { x1: 474, x2: 504, label: "aplica INPC", w: 82, cx: 484 },
+                { x1: 724, x2: 754, label: "calcula factor", w: 96, cx: 729 },
+              ].map((c) => {
+                return (
+                  <g key={c.x1}>
+                    <line
+                      x1={c.x1}
+                      y1="128"
+                      x2={c.x2}
+                      y2="128"
+                      stroke="url(#sairfi-flow-line)"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      markerEnd="url(#sairfi-arrow)"
+                    />
+                    <rect
+                      x={c.cx - c.w / 2}
+                      y="96"
+                      width={c.w}
+                      height="22"
+                      rx="11"
+                      fill="#ffffff"
+                      stroke="#e2e8f0"
+                      strokeWidth="1.2"
+                    />
+                    <text
+                      x={c.cx}
+                      y="110.5"
+                      textAnchor="middle"
+                      fontSize="10"
+                      fontWeight="600"
+                      fill="#0369a1"
+                      letterSpacing="0.01em"
+                    >
+                      {c.label}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* Nodos */}
+              {[
+                {
+                  x: 10, color: "#0f2b46", soft: "#eef3f8", num: "1",
+                  title: "Registra empresa", sub1: "RIF único + ejercicio", sub2: "INICIAL / REGULAR",
+                  pill: "BORRADOR", pillBg: "#e8eef5", pillFg: "#0f2b46",
+                },
+                {
+                  x: 260, color: "#0284c7", soft: "#eaf6fe", num: "2",
+                  title: "Carga INPC", sub1: "Versionado y aprobado", sub2: "BCV · fuente oficial",
+                  pill: "APROBADO", pillBg: "#ecfdf5", pillFg: "#047857",
+                },
+                {
+                  x: 510, color: "#059669", soft: "#e7f8f1", num: "3",
+                  title: "Clasifica partidas", sub1: "Monetarias fuera", sub2: "No monetarias al motor",
+                  pill: "ACTIVA", pillBg: "#ecfdf5", pillFg: "#047857",
+                },
+                {
+                  x: 760, color: "#0f2b46", soft: "#0f2b46", num: "4",
+                  title: "Calcula y cierra", sub1: "Balance fiscal", sub2: "Revisa → aprueba → cierra",
+                  pill: "✓ CERRADO", pillBg: "#0f2b46", pillFg: "#ffffff",
+                },
+              ].map((n) => (
+                <g key={n.x} filter="url(#sairfi-card-shadow)">
+                  <rect x={n.x} y="30" width="210" height="178" rx="20" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1.5" />
+                  <rect x={n.x} y="30" width="210" height="6" rx="3" fill={n.color} opacity="0.9" />
+                  <circle cx={n.x + 34} cy={n.x === 760 ? 70 : 68} r="16" fill={n.x === 760 ? n.soft : n.color} stroke={n.x === 760 ? "#0f2b46" : "none"} strokeWidth={n.x === 760 ? 1.5 : 0} />
+                  <text
+                    x={n.x + 34}
+                    y={n.x === 760 ? 75 : 73}
+                    textAnchor="middle"
+                    fontSize="13"
+                    fontWeight="700"
+                    fill={n.x === 760 ? "#ffffff" : "#ffffff"}
+                  >
+                    {n.num}
+                  </text>
+                  {n.x === 760 && (
+                    <circle cx={n.x + 46} cy={n.x === 760 ? 58 : 56} r="8" fill="#10b981" stroke="#ffffff" strokeWidth="2" />
+                  )}
+                  {n.x === 760 && (
+                    <text x={n.x + 46} y={n.x === 760 ? 61.5 : 59.5} textAnchor="middle" fontSize="9" fontWeight="800" fill="#ffffff">
+                      ✓
+                    </text>
+                  )}
+                  <text x={n.x + 20} y={n.x === 760 ? 108 : 106} fontSize="14" fontWeight="700" fill="#0f2b46">
+                    {n.title}
+                  </text>
+                  <text x={n.x + 20} y="130" fontSize="11.5" fill="#64748b">
+                    {n.sub1}
+                  </text>
+                  <text x={n.x + 20} y="147" fontSize="11.5" fill="#64748b">
+                    {n.sub2}
+                  </text>
+                  <rect x={n.x + 20} y="160" width={n.pill === "✓ CERRADO" ? 96 : 88} height="26" rx="13" fill={n.pillBg} stroke={n.x === 760 ? "#0f2b46" : "#e2e8f0"} strokeWidth="1" />
+                  <text x={n.x + 20 + (n.pill === "✓ CERRADO" ? 48 : 44)} y="177.5" textAnchor="middle" fontSize="10" fontWeight="700" letterSpacing="0.06em" fill={n.pillFg}>
+                    {n.pill}
+                  </text>
+                </g>
+              ))}
+
+              {/* Fórmula central */}
+              <g>
+                <rect x="335" y="222" width="310" height="32" rx="16" fill="#0f2b46" />
+                <text x="490" y="242.5" textAnchor="middle" fontSize="11.5" fontWeight="600" fill="#ffffff" letterSpacing="0.01em">
+                  Factor = INPC cierre / INPC base · LISLR 173–193
+                </text>
+              </g>
+
+              {/* Retorno versionado */}
+              <path
+                d="M 865 208 C 700 282, 280 282, 115 208"
+                fill="none"
+                stroke="#10b981"
+                strokeWidth="1.8"
+                strokeDasharray="6 6"
+                strokeLinecap="round"
+                opacity="0.9"
+              />
+              <text x="490" y="282" textAnchor="middle" fontSize="11" fontWeight="600" fill="#047857">
+                Nada aprobado se edita · se versiona con bitácora
+              </text>
+            </svg>
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1 pb-1">
+              <p className="flex items-center gap-1.5 text-xs text-slate-500">
+                <ShieldCheck className="size-3.5 text-emerald-600" aria-hidden />
+                Cada flecha guarda índices, reglas y usuario que aprobó.
+              </p>
+              <p className="text-xs font-medium text-slate-400">INPC · Factor · Balance fiscal actualizado</p>
+            </div>
+          </div>
         </div>
 
         {/* Cómo funciona */}

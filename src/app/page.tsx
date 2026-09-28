@@ -37,8 +37,8 @@ export default async function HomePage() {
           </div>
           <span className="text-sm text-slate-600">
             Desarrollado por <span className="font-semibold text-[#0f2b46]">NoDoz</span>{" "}
-            <a href="https://github.com/nomedb" target="_blank" rel="noopener noreferrer" className="font-medium text-[#0f2b46] hover:underline">
-              @nomedb
+            <a href="https://github.com/noemdb" target="_blank" rel="noopener noreferrer" className="font-medium text-[#0f2b46] hover:underline">
+              @noemdb
             </a>{" "}
             <span className="text-slate-400">·</span> FSD
           </span>
