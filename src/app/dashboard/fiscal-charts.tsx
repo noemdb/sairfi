@@ -39,23 +39,40 @@ function useApexChart(ref: React.RefObject<HTMLDivElement | null>, options: Apex
 /** Evolución del INPC aprobado — base del factor de actualización (INPC cierre / INPC base). */
 export function InpcAreaChart({ series }: { series: InpcPoint[] }) {
   const ref = useRef<HTMLDivElement>(null);
+  const compact = (v: number) => {
+    const abs = Math.abs(v);
+    if (abs >= 1e9) return `${(v / 1e9).toLocaleString("es-VE", { maximumFractionDigits: 1 })} MM`;
+    if (abs >= 1e6) return `${(v / 1e6).toLocaleString("es-VE", { maximumFractionDigits: 1 })} M`;
+    return v.toLocaleString("es-VE", { maximumFractionDigits: 1 });
+  };
   const options: ApexOptions = {
-    chart: { type: "area", height: 280, toolbar: { show: false }, fontFamily, zoom: { enabled: false } },
+    chart: { type: "area", height: 250, toolbar: { show: false }, fontFamily, zoom: { enabled: false } },
     colors: [SKY],
     fill: {
       type: "gradient",
-      gradient: { shadeIntensity: 0.4, opacityFrom: 0.45, opacityTo: 0.05, stops: [0, 100] },
+      gradient: { shadeIntensity: 0.4, opacityFrom: 0.35, opacityTo: 0.05, stops: [0, 100] },
     },
     stroke: { curve: "smooth", width: 2.5 },
-    markers: { size: 0, hover: { size: 5 } },
+    markers: { size: series.length <= 2 ? 4 : 0, hover: { size: 5 }, colors: [SKY] },
+    // Sin etiquetas sobre los puntos: el valor exacto está en el tooltip.
+    // Con 12 meses de INPC hiperinflacionario saturaban el gráfico.
+    dataLabels: { enabled: false },
     series: [{ name: "INPC", data: series.map((p) => p.value) }],
     xaxis: {
       categories: series.map((p) => p.label),
       axisBorder: { show: false },
       axisTicks: { show: false },
-      labels: { style: { colors: "#64748b" }, rotate: -30, trim: true },
+      labels: { style: { colors: "#64748b" }, rotate: -30, trim: true, hideOverlappingLabels: true },
+      tickAmount: 8,
     },
-    yaxis: { labels: { style: { colors: "#64748b" }, formatter: (v: number) => v.toLocaleString("es-VE") } },
+    // La hiperinflación vuelve la serie exponencial (pared plana + pico final);
+    // la escala logarítmica la hace legible sin cambiar los datos.
+    yaxis: {
+      logarithmic: true,
+      logBase: 10,
+      tickAmount: 4,
+      labels: { style: { colors: "#64748b" }, formatter: compact },
+    },
     grid: { borderColor: "#f1f5f9", strokeDashArray: 3 },
     tooltip: { theme: "light", y: { formatter: (v: number) => v.toLocaleString("es-VE", { maximumFractionDigits: 6 }) } },
     noData,
@@ -79,7 +96,7 @@ export function MonetaryDonutChart({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const options: ApexOptions = {
-    chart: { type: "donut", height: 280, fontFamily },
+    chart: { type: "donut", height: 250, fontFamily },
     colors: [NAVY, EMERALD, AMBER],
     series: [monetarias, noMonetarias, sinClasificar],
     labels: ["Monetarias", "No monetarias", "Sin clasificar"],

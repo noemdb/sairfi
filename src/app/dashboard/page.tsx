@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  ArrowDownRight,
   ArrowRight,
   ArrowUpRight,
   BadgeCheck,
@@ -8,10 +9,12 @@ import {
   ChartLine,
   ClipboardList,
   Landmark,
+  Minus,
   ShieldCheck,
   TrendingUp,
   Users,
   Wallet,
+  type LucideIcon,
 } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-shell";
 import { getSessionUser } from "@/lib/auth/session";
@@ -32,6 +35,7 @@ import { Separator } from "@/components/ui/separator";
 import { CreateSubmissionButton } from "./create-button";
 import { DeleteSubmissionButton } from "./delete-button";
 import { DownloadSubmissionButton } from "./download-button";
+import { KpiDisplay } from "./kpi-mode";
 import { InpcAreaChart, MonetaryDonutChart } from "./fiscal-charts";
 
 export const dynamic = "force-dynamic";
@@ -39,11 +43,47 @@ export const dynamic = "force-dynamic";
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 function fmtBs(n: number) {
+  return `Bs ${fmtCompact(n)}`;
+}
+
+function fmtBsExact(n: number) {
   return `Bs ${n.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+/**
+ * Abrevia magnitudes hiperinflacionarias para tarjetas: 18.112.436 → "18,11 M".
+ * El valor exacto va en `title` (tooltip nativo) y en los reportes.
+ */
+function fmtCompact(n: number, dec = 2) {
+  const abs = Math.abs(n);
+  const f = (v: number) =>
+    v.toLocaleString("es-VE", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  if (abs >= 1e9) return `${f(n / 1e9)} MM`;
+  if (abs >= 1e6) return `${f(n / 1e6)} M`;
+  return n.toLocaleString("es-VE", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
 function fmtInpc(valor: string) {
+  return fmtCompact(Number(valor));
+}
+
+function fmtInpcExact(valor: string) {
   return Number(valor).toLocaleString("es-VE", { maximumFractionDigits: 6 });
+}
+
+/**
+ * Tasa referencial Bs/USD solo para equivalencias informativas del dashboard.
+ * Se configura con la variable de entorno TASA_USD_REFERENCIAL; si no existe
+ * o no es válida, simplemente no se muestra ninguna referencia en USD
+ * (nunca se inventa una tasa). El valor fiscal siempre es en bolívares.
+ */
+function usdRate(): number | null {
+  const r = Number(process.env.TASA_USD_REFERENCIAL);
+  return Number.isFinite(r) && r > 0 ? r : null;
+}
+
+function fmtUsd(n: number, rate: number) {
+  return `$${(n / rate).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default async function DashboardPage() {
@@ -72,16 +112,42 @@ export default async function DashboardPage() {
 
   const { inpc, empresas, ejercicios, partidas, calculos, cola } = overview;
   const variation = inpc.monthlyVariationPct;
+  const prevLabel = inpc.series.length >= 2 ? inpc.series[inpc.series.length - 2].label : null;
+  const rate = usdRate();
+  const efecto = calculos.efectoPatrimonioAprobado;
   const ejerciciosAbiertos = (ejercicios.porEstado["ABIERTO"] ?? 0) + (ejercicios.porEstado["REABIERTO"] ?? 0);
   const coveragePct =
     inpc.coverage12m.total > 0
       ? Math.round((inpc.coverage12m.withIndex / inpc.coverage12m.total) * 100)
       : 0;
 
-  const kpis = [
+  const kpis: Array<{
+    label: string;
+    value: string;
+    /** Valor exacto: línea pequeña + tooltip (la tarjeta muestra la versión abreviada). */
+    exact?: string;
+    /** Equivalencia informativa en USD (solo si hay tasa referencial configurada). */
+    usd?: string;
+    /** Variación vs período anterior (flecha + texto). */
+    delta?: { text: string; direction: "up" | "down" | "flat" };
+    /** Semáforo del valor grande (ex. efecto patrimonial negativo en rojo). */
+    valueClass?: string;
+    hint: string;
+    icon: LucideIcon;
+    tint: string;
+    progress?: number;
+  }> = [
     {
       label: "INPC vigente",
       value: inpc.latest ? fmtInpc(inpc.latest.valor) : "—",
+      exact: inpc.latest ? fmtInpcExact(inpc.latest.valor) : undefined,
+      delta:
+        variation != null
+          ? {
+              text: `${variation > 0 ? "+" : ""}${variation.toFixed(2)}%${prevLabel ? ` vs ${prevLabel}` : ""}`,
+              direction: variation > 0 ? "up" : variation < 0 ? "down" : "flat",
+            }
+          : undefined,
       hint: inpc.latest
         ? `${MESES[inpc.latest.mes - 1]} ${inpc.latest.anio} · ${inpc.latest.fuente}`
         : "Sin índices aprobados",
@@ -91,6 +157,7 @@ export default async function DashboardPage() {
     {
       label: "Inflación intermensual",
       value: variation != null ? `${variation.toFixed(2)}%` : "—",
+      exact: variation != null ? `${variation.toFixed(4)}%` : undefined,
       hint: `Cobertura ${inpc.coverage12m.withIndex}/${inpc.coverage12m.total} meses con INPC`,
       icon: ChartLine,
       tint: "bg-[#0f2b46]/5 text-[#0f2b46]",
@@ -108,7 +175,20 @@ export default async function DashboardPage() {
     },
     {
       label: "Efecto en patrimonio",
-      value: calculos.aprobados > 0 ? fmtBs(calculos.efectoPatrimonioAprobado) : "—",
+      value:
+        calculos.aprobados > 0
+          ? `${efecto > 0 ? "+" : ""}${fmtBs(efecto)}`
+          : "—",
+      exact: calculos.aprobados > 0 ? fmtBsExact(efecto) : undefined,
+      usd: calculos.aprobados > 0 && rate != null ? `≈ ${fmtUsd(efecto, rate)} · tasa ref` : undefined,
+      valueClass:
+        calculos.aprobados > 0
+          ? efecto > 0
+            ? "text-emerald-700"
+            : efecto < 0
+              ? "text-red-700"
+              : "text-[#0f2b46]"
+          : undefined,
       hint:
         calculos.aprobados === 0
           ? "Sin cálculos aprobados"
@@ -154,25 +234,66 @@ export default async function DashboardPage() {
         </div>
 
         {/* Indicadores fiscales */}
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {kpis.map((kpi) => (
-            <Card key={kpi.label} className="group gap-0 py-0 transition-all hover:-translate-y-0.5 hover:shadow-md">
-              <CardContent className="px-5 py-5">
-                <div className="flex items-center justify-between">
-                  <p className="text-[13px] font-medium text-slate-500">{kpi.label}</p>
-                  <span className={`grid h-8 w-8 place-items-center rounded-xl ${kpi.tint}`}>
-                    <kpi.icon className="size-4" aria-hidden />
-                  </span>
-                </div>
-                <p className="mt-2 text-2xl font-semibold tracking-tight text-[#0f2b46]">{kpi.value}</p>
-                <p className="mt-1 text-xs text-slate-500">{kpi.hint}</p>
-                {kpi.progress != null && (
-                  <Progress value={kpi.progress} className="mt-3" aria-label={`Cobertura INPC ${kpi.progress}%`} />
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <KpiDisplay>
+          {kpis.map((kpi) => {
+            const DeltaIcon = kpi.delta
+              ? kpi.delta.direction === "up"
+                ? ArrowUpRight
+                : kpi.delta.direction === "down"
+                  ? ArrowDownRight
+                  : Minus
+              : null;
+            return (
+              <Card key={kpi.label} className="group gap-0 py-0 transition-all hover:-translate-y-0.5 hover:shadow-md">
+                <CardContent className="px-5 py-5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[13px] font-medium text-slate-500">{kpi.label}</p>
+                    <span className={`grid h-8 w-8 place-items-center rounded-xl ${kpi.tint}`}>
+                      <kpi.icon className="size-4" aria-hidden />
+                    </span>
+                  </div>
+                  <p
+                    title={kpi.exact}
+                    className={`kpi-compacto mt-2 text-2xl font-semibold tracking-tight tabular-nums ${kpi.valueClass ?? "text-[#0f2b46]"}`}
+                  >
+                    {kpi.value}
+                  </p>
+                  {kpi.exact && (
+                    <p
+                      title={kpi.exact}
+                      className="kpi-exacto mt-2 text-lg font-semibold tracking-tight break-all tabular-nums text-[#0f2b46]"
+                    >
+                      {kpi.exact}
+                    </p>
+                  )}
+                  {kpi.exact && (
+                    <p title={kpi.exact} className="kpi-exacto-line mt-1 truncate text-[11px] tabular-nums text-slate-400">
+                      Exacto: {kpi.exact}
+                    </p>
+                  )}
+                  {kpi.usd && (
+                    <p
+                      title="Equivalencia informativa con la tasa referencial configurada; el valor fiscal es en bolívares"
+                      className="mt-1 truncate text-[11px] tabular-nums text-slate-400"
+                    >
+                      {kpi.usd}
+                    </p>
+                  )}
+                  {DeltaIcon && kpi.delta && (
+                    <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-sky-700">
+                      <DeltaIcon className="size-3.5" aria-hidden />
+                      {kpi.delta.text}
+                    </p>
+                  )}
+                  <p className="mt-1 text-xs text-slate-500">{kpi.hint}</p>
+                  {kpi.progress != null && (
+                    <Progress value={kpi.progress} className="mt-3" aria-label={`Cobertura INPC ${kpi.progress}%`} />
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </KpiDisplay>
 
         <div className="grid gap-4 lg:grid-cols-5">
           <Card className="gap-0 py-0 lg:col-span-3">
@@ -182,7 +303,7 @@ export default async function DashboardPage() {
                 Evolución del INPC
               </CardTitle>
               <CardDescription>
-                Índices aprobados · base del factor de actualización (INPC cierre / INPC base).
+                Índices aprobados · escala logarítmica (el factor es INPC cierre / INPC base).
               </CardDescription>
               <CardAction>
                 <Badge variant="secondary">Aprobados</Badge>
@@ -211,11 +332,11 @@ export default async function DashboardPage() {
               <dl className="mt-2 divide-y divide-slate-100 rounded-2xl border border-slate-100 bg-slate-50/50">
                 <div className="flex items-center justify-between px-4 py-2.5">
                   <dt className="text-sm text-slate-500">Valor histórico total</dt>
-                  <dd className="text-sm font-semibold text-slate-900">{fmtBs(partidas.valorHistorico)}</dd>
+                  <dd title={fmtBsExact(partidas.valorHistorico)} className="text-sm font-semibold tabular-nums text-slate-900">{fmtBs(partidas.valorHistorico)}</dd>
                 </div>
                 <div className="flex items-center justify-between px-4 py-2.5">
                   <dt className="text-sm text-slate-500">Ajuste acumulado</dt>
-                  <dd className="text-sm font-semibold text-emerald-700">{fmtBs(partidas.ajusteAcumulado)}</dd>
+                  <dd title={fmtBsExact(partidas.ajusteAcumulado)} className="text-sm font-semibold tabular-nums text-emerald-700">{fmtBs(partidas.ajusteAcumulado)}</dd>
                 </div>
               </dl>
             </CardContent>
@@ -287,8 +408,16 @@ export default async function DashboardPage() {
                 <p className="mt-3 flex items-start gap-2 rounded-2xl border border-emerald-200 bg-emerald-50/70 px-3.5 py-2.5 text-xs leading-5 text-emerald-800">
                   <BadgeCheck className="mt-0.5 size-4 shrink-0" aria-hidden />
                   <span>
-                    Último cálculo aprobado: <strong>{fmtBs(calculos.ultimoAprobado.efecto)}</strong> ·{" "}
-                    {calculos.ultimoAprobado.empresa} ·{" "}
+                    Último cálculo aprobado:{" "}
+                    <strong title={fmtBsExact(calculos.ultimoAprobado.efecto)}>
+                      {fmtBs(calculos.ultimoAprobado.efecto)}
+                    </strong>
+                    {rate != null && (
+                      <span className="font-normal text-emerald-700">
+                        {" "}≈ {fmtUsd(calculos.ultimoAprobado.efecto, rate)}
+                      </span>
+                    )}{" "}
+                    · {calculos.ultimoAprobado.empresa} ·{" "}
                     {new Date(calculos.ultimoAprobado.fecha).toLocaleDateString("es-VE")}
                   </span>
                 </p>

@@ -112,3 +112,19 @@ textarea::selection {
 }
 
 /* Light mode only - nunca dark */
+
+/* Vista de cifras del dashboard (KpiDisplay): por defecto la cifra grande es
+   la abreviada (.kpi-compacto) y la exacta va en línea pequeña; en modo
+   exacto se invierte. La preferencia vive en localStorage del navegador. */
+.kpi-exacto {
+  display: none;
+}
+[data-kpi-mode="exacto"] .kpi-compacto {
+  display: none;
+}
+[data-kpi-mode="exacto"] .kpi-exacto {
+  display: block;
+}
+[data-kpi-mode="exacto"] .kpi-exacto-line {
+  display: none;
+}
